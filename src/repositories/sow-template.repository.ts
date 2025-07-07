@@ -119,36 +119,33 @@ export const getSowTemplateByIdQuery = `
         WHERE p.id = t.type
         LIMIT 1
     ), NULL) AS picklist_items,
-
-   -- Custom Fields
-COALESCE((
-  SELECT JSON_ARRAYAGG(
-    JSON_OBJECT(
-      'id', stcf.custom_field_id,
-      'value',
-      CASE
-        WHEN JSON_VALID(stcf.value) AND JSON_TYPE(JSON_EXTRACT(stcf.value, '$')) = 'ARRAY'
-          THEN JSON_EXTRACT(stcf.value, '$')
-        WHEN JSON_VALID(stcf.value) AND JSON_TYPE(JSON_EXTRACT(stcf.value, '$')) = 'STRING'
-          THEN JSON_ARRAY(JSON_UNQUOTE(JSON_EXTRACT(stcf.value, '$')))
-        WHEN JSON_VALID(stcf.value) AND JSON_TYPE(JSON_EXTRACT(stcf.value, '$')) = 'OBJECT'
-          THEN JSON_ARRAY(JSON_EXTRACT(stcf.value, '$'))
-        WHEN JSON_VALID(stcf.value) AND JSON_TYPE(JSON_EXTRACT(stcf.value, '$')) IN ('INTEGER', 'DECIMAL')
-          THEN JSON_ARRAY(CAST(JSON_EXTRACT(stcf.value, '$') AS CHAR))
-        ELSE JSON_ARRAY(CAST(stcf.value AS CHAR))
-      END,
-      'label', cf.label,
-      'field_type', cf.field_type
-    )
-  )
-  FROM sow_template_custom_field stcf
-  JOIN custom_fields cf ON stcf.custom_field_id = cf.id
-  WHERE stcf.sow_temp_id = t.id
-    AND cf.is_enabled = TRUE
-    AND cf.is_deleted = FALSE
-), JSON_ARRAY()) AS custom_fields,
-
-
+-- Custom Fields
+    COALESCE((
+        SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'id', stcf.custom_field_id,
+                'value',
+                CASE
+                    WHEN JSON_VALID(stcf.value) AND JSON_TYPE(JSON_EXTRACT(stcf.value, '$')) = 'ARRAY'
+                        THEN JSON_EXTRACT(stcf.value, '$')
+                    WHEN JSON_VALID(stcf.value) AND JSON_TYPE(JSON_EXTRACT(stcf.value, '$')) = 'STRING'
+                        THEN JSON_ARRAY(JSON_UNQUOTE(JSON_EXTRACT(stcf.value, '$')))
+                    WHEN JSON_VALID(stcf.value) AND JSON_TYPE(JSON_EXTRACT(stcf.value, '$')) = 'OBJECT'
+                        THEN JSON_ARRAY(JSON_EXTRACT(stcf.value, '$'))
+                    WHEN JSON_VALID(stcf.value) AND JSON_TYPE(JSON_EXTRACT(stcf.value, '$')) IN ('INTEGER', 'DECIMAL')
+                        THEN JSON_ARRAY(CAST(JSON_EXTRACT(stcf.value, '$') AS CHAR))
+                    ELSE JSON_ARRAY(CAST(stcf.value AS CHAR))
+                END,
+                'label', COALESCE(cf.label, ''),
+                'field_type', COALESCE(cf.field_type, '')
+            )
+        )
+        FROM sow_template_custom_field stcf
+        LEFT JOIN custom_fields cf ON stcf.custom_field_id = cf.id
+        WHERE stcf.sow_temp_id = t.id
+            AND cf.is_enabled = TRUE
+            AND cf.is_deleted = FALSE
+    ), JSON_ARRAY()) AS custom_fields,
 
 -- Master Data
 COALESCE((
