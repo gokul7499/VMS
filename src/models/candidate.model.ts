@@ -50,10 +50,6 @@ Candidate.init(
             type: DataTypes.STRING,
             allowNull: true,
         },
-        websites: {
-            type: DataTypes.JSON,
-            allowNull: true
-        },
         avatar: {
             type: DataTypes.JSON,
             allowNull: true,
@@ -134,17 +130,13 @@ Candidate.init(
             type: DataTypes.BOOLEAN,
             defaultValue: false,
         },
-        is_advanced_profile: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: false,
-        },
         is_deleted: {
             type: DataTypes.BOOLEAN,
             defaultValue: false,
         },
         is_pre_identified: {
             type: DataTypes.BOOLEAN,
-            defaultValue: false,      
+            defaultValue: false,
         },
         contacts: {
             type: DataTypes.JSON,
@@ -163,10 +155,6 @@ Candidate.init(
             allowNull: true,
         },
         custom_fields: {
-            type: DataTypes.JSON,
-            allowNull: true,
-        },
-        preferences: {
             type: DataTypes.JSON,
             allowNull: true,
         },
@@ -211,7 +199,6 @@ Candidate.init(
             type: DataTypes.STRING(50),
             allowNull: false,
         },
-        
     },
     {
         sequelize: sequelize,
