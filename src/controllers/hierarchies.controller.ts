@@ -359,7 +359,6 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
       await HierarchyCustomFieldModel.bulkCreate(customFields, { transaction });
     }
 
-
     await transaction.commit();
 
     logger({
@@ -380,6 +379,7 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
       status_code: 201,
       message: 'hierarchies Created Successfully',
       trace_id: traceId,
+      id: newItem.id
     });
   } catch (error) {
     await transaction.rollback();
