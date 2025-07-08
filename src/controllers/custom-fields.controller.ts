@@ -1249,17 +1249,26 @@ export async function reorderCustomFields(request: FastifyRequest, reply: Fastif
     custom_field_ids: { id: string; seq_number: number }[];
   };
 
-  for (const field of custom_field_ids) {
-    await CustomField.update(
-      { seq_number: field.seq_number },
-      { where: { program_id, id: field.id, module_name } }
+  await sequelize.transaction(async (t) => {
+    await Promise.all(
+      custom_field_ids.map(field =>
+        CustomField.update(
+          { seq_number: field.seq_number },
+          {
+            where: { program_id, id: field.id, module_name },
+            transaction: t
+          }
+        )
+      )
     );
-  }
+  });
+
   reply.send({
     status_code: 200,
     message: "Custom field sequence updated successfully",
     traceId: traceId,
   });
 }
+
 
 
