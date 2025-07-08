@@ -27,7 +27,7 @@ class CandidateRepository {
             whereClause += ` AND c.updated_on = :updated_on`;
         }
         if (replacements.availability_date) {
-            whereClause += ` AND CAST(JSON_UNQUOTE(JSON_EXTRACT(c.preferences, '$.availability_date')) AS UNSIGNED) = :availability_date`;
+            whereClause += ` AND CAST(JSON_UNQUOTE(JSON_EXTRACT('$.availability_date')) AS UNSIGNED) = :availability_date`;
         }
         if (replacements.search) {
             whereClause += ` AND (
@@ -80,7 +80,6 @@ class CandidateRepository {
         c.email, 
         c.program_id, 
         c.candidate_id, 
-        c.preferences, 
         c.worker_type_id, 
         c.title, 
         c.birth_date, 
