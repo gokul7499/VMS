@@ -578,7 +578,7 @@ export const bulkUploadRateGuidance = async (request: FastifyRequest, reply: Fas
 
 export const getUniqueProfessions = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
-    const { professions: professionsParam } = request.query as { professions?: string };
+    const { professions: professionsParam, specialties: specialtiesParam } = request.query as { professions?: string, specialties?: string };
 
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
@@ -633,6 +633,31 @@ export const getUniqueProfessions = async (request: FastifyRequest, reply: Fasti
         // Split the professions parameter into an array
         const requestedProfessions = professionsParam.split(',').map(p => p.trim());
 
+        if (specialtiesParam) {
+            const requestedSpecialties = specialtiesParam.split(',').map(s => s.trim());
+            const rows = await RateGuidanceMaster.findAll({
+                attributes: ['profession', 'specialty', 'state'],
+                where: {
+                    profession: { [Op.in]: requestedProfessions },
+                    specialty: { [Op.in]: requestedSpecialties },
+                    is_deleted: false
+                },
+                raw: true
+            });
+            const result: { [profession: string]: { [specialty: string]: string[] } } = {};
+            for (const { profession, specialty, state } of rows) {
+                if (!result[profession]) result[profession] = {};
+                if (!result[profession][specialty]) result[profession][specialty] = [];
+                if (!result[profession][specialty].includes(state)) result[profession][specialty].push(state);
+            }
+            return reply.status(200).send({
+                status_code: 200,
+                message: 'Unique states by profession and specialty retrieved successfully',
+                professions: result,
+                trace_id: traceId
+            });
+        }
+
         const rows = await RateGuidanceMaster.findAll({
             attributes: ['profession', 'specialty'],
             where: {
@@ -679,7 +704,7 @@ export const getUniqueProfessions = async (request: FastifyRequest, reply: Fasti
             data: { error: error.message },
             eventname: "get unique professions",
             status: "error",
-            description: 'Error retrieving unique professions/specialties',
+            description: 'Error retrieving unique professions/specialties/states',
             level: 'error',
             action: request.method,
             url: request.url,
@@ -689,7 +714,7 @@ export const getUniqueProfessions = async (request: FastifyRequest, reply: Fasti
 
         reply.status(500).send({
             status_code: 500,
-            message: 'Error retrieving unique professions/specialties',
+            message: 'Error retrieving unique professions/specialties/states',
             error: error.message,
             trace_id: traceId
         });
