@@ -116,19 +116,14 @@ export async function createIndustries(
 
 export const getIndustries = async (request: FastifyRequest, reply: FastifyReply) => {
   const { program_id } = request.params as { program_id: string };
-  const { name, is_enabled, updated_on, page = '1', limit = '10' } = request.query as {
+  const { name, is_enabled, updated_on} = request.query as {
     name: string;
     is_enabled: boolean | string;
     updated_on: string;
-    page: string;
-    limit: string;
   };
   const traceId = generateCustomUUID();
 
   try {
-    const pageNumber = parseInt(page, 10);
-    const pageSize = parseInt(limit, 10);
-    const offset = (pageNumber - 1) * pageSize;
 
     const whereCondition: any = { is_deleted: false, program_id };
 
@@ -152,8 +147,6 @@ export const getIndustries = async (request: FastifyRequest, reply: FastifyReply
     const { rows: labour_categories, count } = await IndustriesModel.findAndCountAll({
       where: whereCondition,
       attributes: ['id', 'name', 'is_enabled', 'created_on', 'updated_on','code'],
-      limit: pageSize,
-      offset,
       order: [['updated_on', 'DESC']]
     });
 
@@ -170,8 +163,6 @@ export const getIndustries = async (request: FastifyRequest, reply: FastifyReply
       status_code: 200,
       trace_id: traceId,
       message: 'labour categories retrieved successfully',
-      items_per_page: pageSize,
-      current_page: pageNumber,
       total_records: count,
       labour_categories
     });
