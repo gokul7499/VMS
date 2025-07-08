@@ -2626,6 +2626,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
+    const user_type = user?.userType
     
     try {
         const { workflow_action, job_id, workflow_trigger_id, hierarchy_id, workflow_id } = request.query as {
@@ -2663,7 +2664,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
         const workflows: { [key: string]: Workflow } = {};
         
         for (const row of rows) {
-            await processWorkflowRow(row, workflows, program_id);
+            await processWorkflowRow(row, workflows, program_id, user_type);
         }
         for (const workflowId in workflows) {
             workflows[workflowId].levels = deduplicateLevels(workflows[workflowId].levels);
@@ -2874,7 +2875,7 @@ function buildWorkflowQuery(workflow_id: string) {
 /**
  * Process a workflow row from the database and add it to the workflows map
  */
-async function processWorkflowRow(row: any, workflows: { [key: string]: Workflow }, program_id: string): Promise<void> {
+async function processWorkflowRow(row: any, workflows: { [key: string]: Workflow }, program_id: string, user_type: string): Promise<void> {
     const {
         level_id,
         level_status,
@@ -2965,7 +2966,7 @@ async function processWorkflowRow(row: any, workflows: { [key: string]: Workflow
                     }
 
                     let imposonate_user_data = null;
-                    if (rt?.impersonate_by || imporsonate_by) {
+                    if (user_type?.toLowerCase() !== "super_user" && (rt?.impersonate_by || imporsonate_by)) {
                         const imporsonater = rt?.impersonate_by || imporsonate_by
                         const imporsonateUserResult = await fetchUserData(imporsonater, program_id);
 
