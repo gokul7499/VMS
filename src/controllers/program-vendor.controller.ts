@@ -17,6 +17,8 @@ import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-
 import VendorDocumentGroupModel from "../models/vendor-document-group.model";
 import UserModel from "../models/user.model";
 import VendorCustomField from "../models/vendor-custom-field.model";
+import { getCustomsField } from "../utility/get-custom-field";
+import { replace } from "lodash";
 interface VendorDetails {
     document_details: any;
     doc_id: any;
@@ -743,12 +745,22 @@ export const getProgramVendorById = async (request: FastifyRequest, reply: Fasti
         }
 
         const programVendor: ProgramVendor = vendorData[0];
-
+        const [customFields] = await sequelize.query(
+            getCustomsField(programVendor.id, 'vendor_custom_field','vendor_id','custom_field_id'),
+            {
+                replacements: { id: programVendor.id },
+                type: QueryTypes.SELECT
+            }
+        )as any;
         return reply.status(200).send({
             status_code: 200,
             message: 'Program vendor data fetched successfully.',
             trace_id: traceId,
-            program_vendor: programVendor,
+            program_vendor:{
+                ...programVendor,
+                custom_field:customFields?.custom_fields ||[]
+
+            },
         });
     } catch (error: any) {
         return reply.status(500).send({
