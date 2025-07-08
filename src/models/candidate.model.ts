@@ -5,6 +5,8 @@ import { Programs } from "./programs.model"
 import countriesModel from "./countries.model";
 import Tenant from "./tenant.model";
 import JobCategoryModel from "./job-category.model";
+import IndustriesModel from "./labour-category.model";
+import JobTemplateModel from "./job-template.model";
 class Candidate extends Model {
     id: any;
     qualifications: any;
@@ -118,13 +120,17 @@ Candidate.init(
             type: DataTypes.UUID,
             allowNull: true,
             references: {
-                model: "job_category",
+                model: "labour_category",
                 key: "id",
             },
         },
         title: {
             type: DataTypes.STRING,
-            allowNull: true
+            allowNull: true,
+            references: {
+                model: "job_templates",
+                key: "id",
+            },
         },
         is_active: {
             type: DataTypes.BOOLEAN,
@@ -214,6 +220,7 @@ Candidate.init(
 
 Candidate.belongsTo(Programs, { foreignKey: 'program_id', as: 'program' });
 Candidate.belongsTo(countriesModel, { foreignKey: 'country_id', as: 'country' });
-Candidate.belongsTo(JobCategoryModel, { foreignKey: 'job_category_id', as: 'job_category' });
+Candidate.belongsTo(IndustriesModel, { foreignKey: 'job_category_id', as: 'labour_category' });
+Candidate.belongsTo(JobTemplateModel, { foreignKey: 'title', as: 'job_templates' });
 Candidate.belongsTo(Tenant, { foreignKey: 'tenant_id', as: 'tenant' });
 export default Candidate;

@@ -18,6 +18,8 @@ import JobCategoryModel from "../models/job-category.model";
 import { sequelize } from "../config/instance";
 import { createCandidateHistory } from "../utility/candidate-history";
 import CustomField from "../models/custom-fields.model";
+import IndustriesModel from "../models/labour-category.model";
+import JobTemplateModel from "../models/job-template.model";
 const candidateRepository = new CandidateRepository();
 
 export async function createCandidate(request: FastifyRequest, reply: FastifyReply) {
@@ -311,13 +313,18 @@ export async function getCandidateByIdAndProgramId(
                 is_deleted: false
             },
             attributes: {
-                exclude: ['country_id', 'job_category_id']
+                exclude: ['country_id','job_category_id']
             },
             include: [
                 {
-                    model: JobCategoryModel,
-                    as: 'job_category',
-                    attributes: ['id', 'category'],
+                    model: IndustriesModel,
+                    as: 'labour_category',
+                    attributes: ['id', 'name'],
+                },
+                 {
+                    model: JobTemplateModel,
+                    as: 'job_templates',
+                    attributes: ['id', 'template_name'],
                 },
                 {
                     model: countriesModel,
@@ -338,15 +345,19 @@ export async function getCandidateByIdAndProgramId(
         }
 
         const candidateData = candidate.toJSON();
+        console.log(candidateData, "candidateData")
 
-        if (candidateData.job_category) {
+        if (candidateData.labour_category) {
             candidateData.job_category_id = {
-                id: candidateData.job_category.id,
-                name: candidateData?.job_category?.category?.category_name
+                id: candidateData.labour_category.id,
+                name: candidateData?.labour_category?.name
             };
-            delete candidateData.job_category;
+            delete candidateData.labour_category;
         }
-
+         if (candidateData.job_templates) {
+            candidateData.title = candidateData?.job_templates?.template_name
+            delete candidateData.job_templates;
+        }
 
         const vendor = await ProgramVendor.findOne({
             where: { id: candidateData.vendor_id, program_id: program_id },
