@@ -516,9 +516,9 @@ export async function updateCandidateByIdAndProgramId(
 
 
 
-        // let uniqueId = await CandidateUniqueIdGenerate(program_id, updates);
+        let uniqueId = await CandidateUniqueIdGenerate(program_id, updates);
         const [updatedRows] = await candidateModel.update(
-            { ...updates, updated_by: userId, updated_on: Date.now() },
+            { ...updates, updated_by: userId, updated_on: Date.now(),unique_id: uniqueId },
             {
                 where: {
                     program_id,
