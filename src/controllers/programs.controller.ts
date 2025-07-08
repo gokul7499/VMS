@@ -17,6 +17,7 @@ import { sequelize } from "../config/instance";
 import ProgramCustomField from "../models/program_custom_field_model";
 import { clonePredefinedPicklistsForProgram } from "./picklist.controller";
 import programMspAssociationModel from "../models/program-msp-association.model";
+import { getCustomsField } from "../utility/get-custom-field";
 type MSP = {
   id: string;
   is_enabled: boolean;
@@ -272,99 +273,71 @@ export const getProgramById = async (request: FastifyRequest, reply: FastifyRepl
   const { id } = request.params as { id: string };
   const traceId = generateCustomUUID();
   try {
-    const programs = await Programs.findOne({
+const programs = await Programs.findOne({
+  where: {
+    id: id,
+    is_deleted: false,
+  },
+  include: [
+    {
+      model: Tenant,
+      as: "client",
       where: {
-        id: id,
         is_deleted: false,
       },
-      include: [
-        {
-          model: Tenant,
-          as: "client",
-          where: {
-            is_deleted: false,
-          },
-          attributes: ["name", "display_name", "id", "logo"],
-        },
-        {
-          model: Tenant,
-          as: "msp",
-          required: false,
-          where: {
-            is_deleted: false,
-          },
-          attributes: ["name", "display_name", "id", "logo"],
-        },
-      ],
-      attributes: [
-        "id",
-        "name",
-        "display_name",
-        "description",
-        "type",
-        "start_date",
-        "is_enabled",
-        "unique_id",
-      ],
-    });
+      attributes: ["name", "display_name", "id", "logo"],
+    },
+    {
+      model: Tenant,
+      as: "msp",
+      required: false,
+      where: {
+        is_deleted: false,
+      },
+      attributes: ["name", "display_name", "id", "logo"],
+    },
+  ],
+  attributes: [
+    "id",
+    "name",
+    "display_name",
+    "description",
+    "type",
+    "start_date",
+    "is_enabled",
+    "unique_id",
+  ],
+});
 
-    const [customFieldsResult] = await sequelize.query(
-      `SELECT 
-    programs.id,
-    programs.display_name,
-    COALESCE((
-        SELECT JSON_ARRAYAGG(
-            JSON_OBJECT(
-                'id', program_custom_field.custom_field_id,
-                 'value', program_custom_field.value,
-                'label', cf.label,
-                'field_type', cf.field_type,
-                'custom_field_id', cf.id,
-                'manager_name',
-          CASE
-            WHEN u.user_id IS NOT NULL THEN CONCAT(u.first_name, ' ', u.last_name)
-            ELSE NULL
-          END
-            )
-        )
-        FROM program_custom_field
-        JOIN custom_fields cf ON program_custom_field.custom_field_id = cf.id
-        LEFT JOIN user AS u 
-        ON REPLACE(REPLACE(program_custom_field.value, '"', ''), ' ', '') = TRIM(u.user_id) AND u.program_id = program_custom_field.program_id
-        WHERE program_custom_field.program_id = programs.id
-        AND cf.is_enabled = true
-        AND cf.is_deleted = false
-    ), JSON_ARRAY()) AS custom_fields
-FROM programs
-WHERE programs.id = :id;
-`,
-      {
-        replacements: { id },
-        type: QueryTypes.SELECT,
-      }
-    ) as any;
-
-    const customFields = customFieldsResult?.custom_fields || [];
-    if (programs) {
-      reply.status(200).send({
-        status_code: 200,
-        message: "Data fetch successfully",
-        data: {
-          ...programs.toJSON(),
-          custom_fields: customFields,
-        },
-        trace_id: traceId,
-      });
-
-    } else {
-      reply.status(200).send({
-        status_code: 200,
-        message: "Programs not found",
-        trace_id: traceId,
-        program: [],
-
-      });
+if (programs) {
+  const [customFieldsResult] = await sequelize.query(
+    getCustomsField(programs.id, 'program_custom_field', 'program_id', 'custom_field_id'),
+    {
+      replacements: { id: programs.id },
+      type: QueryTypes.SELECT,
     }
+  ) as any;
+
+  const customFields = customFieldsResult?.custom_fields || [];
+  reply.status(200).send({
+    status_code: 200,
+    message: "Data fetch successfully",
+    data: {
+      ...programs.toJSON(),
+      custom_fields: customFields,
+    },
+    trace_id: traceId,
+  });
+
+} else {
+  reply.status(200).send({
+    status_code: 200,
+    message: "Programs not found",
+    trace_id: traceId,
+    program: [],
+
+  });
+}
   } catch (error) {
     reply.status(500).send({
       status_code: 500,

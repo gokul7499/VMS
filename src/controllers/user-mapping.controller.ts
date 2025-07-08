@@ -8,6 +8,7 @@ import { QueryTypes } from "sequelize";
 import { getPendingUser } from "./user.controller";
 import { databaseConfig } from '../config/db';
 import { parseValue } from "../utility/parse-value";
+import { getCustomsField } from "../utility/get-custom-field";
 const auth_db = databaseConfig.config.database_auth;
 export const getAllUserMappings = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
@@ -366,32 +367,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                      WHERE JSON_CONTAINS(u.work_location_ids, JSON_QUOTE(wl.id))
                      )
                     END
-                    ),
-
-                    'custom_fields', COALESCE((
-                        SELECT JSON_ARRAYAGG(
-                            JSON_OBJECT(
-                                'id', user_custom_fields.id,
-                                'value', user_custom_fields.value,
-                                'label',custom_fields.label,
-                                'custom_field_id', custom_fields.id,
-                                'manager_name',
-                            CASE
-                                WHEN user.user_id IS NOT NULL
-                                THEN CONCAT(user.first_name, ' ', user.last_name)
-                               ELSE NULL
-                            END,
-                            'name', custom_fields.name,
-                            'field_type', custom_fields.field_type
-                            )
-                        )
-                        FROM user_custom_fields
-                        LEFT JOIN custom_fields ON user_custom_fields.customfield_id = custom_fields.id
-                        LEFT JOIN user ON TRIM(BOTH '"' FROM user_custom_fields.value) = user.user_id AND custom_fields.program_id=user.program_id
-                        WHERE user_custom_fields.user_id = u.user_id
-                        AND custom_fields.is_deleted = false
-                        AND custom_fields.is_enabled = true
-                    ), JSON_ARRAY())
+                    )
                 ) AS user
             FROM user_mappings um
             LEFT JOIN user u ON um.user_id = u.user_id AND um.program_id = u.program_id
@@ -434,13 +410,21 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
 
             for (const mapping of userMappings) {
                 const userId = mapping.user?.user_id;
-                if (mapping.user?.custom_fields) {
-                    mapping.user.custom_fields = mapping.user.custom_fields.map((field: any) => ({
+                if (userId) {
+                    const customField = await sequelize.query(
+                        getCustomsField(userId, 'user_custom_fields', 'user_id','customfield_id'),
+                        {
+                            replacements: { id: userId },
+                            type: QueryTypes.SELECT,
+                        }
+                    )as any;
+
+                    mapping.custom_fields = customField[0]?.custom_fields || [];
+                    mapping.custom_fields = mapping.custom_fields.map((field: any) => ({
                         ...field,
                         value: parseValue(field.value),
                     }));
-                }
-                if (userId) {
+
                     const masterDataQuery = `
                 SELECT
                     JSON_OBJECT(
