@@ -1233,3 +1233,26 @@ export const advanceFilterCustomFiled = async (request: FastifyRequest, reply: F
     });
   }
 }
+
+export async function reorderCustomFields(request: FastifyRequest, reply: FastifyReply) {
+  const traceId = generateCustomUUID();
+  const { program_id } = request.params as { program_id: string };
+  const { module_name, custom_field_ids } = request.body as {
+    module_name: string;
+    custom_field_ids: { id: string; seq_number: number }[];
+  };
+
+  for (const field of custom_field_ids) {
+    await CustomField.update(
+      { seq_number: field.seq_number },
+      { where: { program_id, id: field.id, module_name } }
+    );
+  }
+  reply.send({
+    status_code: 200,
+    message: "Custom field sequence updated successfully",
+    traceId: traceId,
+  });
+}
+
+

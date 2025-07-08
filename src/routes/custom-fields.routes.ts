@@ -52,6 +52,10 @@ async function customFieldsRoutes(fastify: FastifyInstance) {
     // preHandler: validatePermissions(Actions.READ, [Permissions.CUSTOM_FIELD]),
   }, customFieldController.advanceFilterCustomFiled);
 
+  fastify.put('/program/:program_id/custom-fields/reorder', {
+    // preHandler: validatePermissions(Actions.READ, [Permissions.CUSTOM_FIELD]),
+  }, customFieldController.reorderCustomFields);
+
 }
 
 export default customFieldsRoutes;

@@ -48,6 +48,7 @@ export interface GetQueryInterface {
   hierarchy_ids?:any;
   user_type?: string;
   is_dependant_field?: string;
+  seq_number?: number;
 }
 
 export const paramsSchema = {
