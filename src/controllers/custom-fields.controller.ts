@@ -60,8 +60,15 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
         trace_id: traceId,
       });
     }
-
-    const customField = await createCustomField({ label, name, module_id, ...customFieldData }, user);
+    const seqNumber = await CustomField.max('seq_number', {
+      where: {
+        program_id,
+        module_id,
+        is_deleted: false,
+      },
+    }) as any;
+    const newSeqNumber = (seqNumber) + 1;
+    const customField = await createCustomField({ label, name, module_id, seq_number: newSeqNumber, ...customFieldData }, user);
     if (!customField?.id) {
       throw new Error('Failed to create custom field');
     }

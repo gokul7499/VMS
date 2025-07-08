@@ -165,8 +165,7 @@ CustomField.init(
     },
     seq_number:{
       type: DataTypes.INTEGER,
-      allowNull: true,
-      defaultValue: 0
+      allowNull: true
     },
     created_on: {
       type: DataTypes.BIGINT.UNSIGNED,
