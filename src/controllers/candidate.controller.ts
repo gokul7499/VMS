@@ -18,6 +18,7 @@ import JobCategoryModel from "../models/job-category.model";
 import { sequelize } from "../config/instance";
 import { createCandidateHistory } from "../utility/candidate-history";
 import CustomField from "../models/custom-fields.model";
+import IndustriesModel from "../models/labour-category.model";
 const candidateRepository = new CandidateRepository();
 
 export async function createCandidate(request: FastifyRequest, reply: FastifyReply) {
@@ -315,9 +316,9 @@ export async function getCandidateByIdAndProgramId(
             },
             include: [
                 {
-                    model: JobCategoryModel,
-                    as: 'job_category',
-                    attributes: ['id', 'category'],
+                    model: IndustriesModel,
+                    as: 'labour_category',
+                    attributes: ['id', 'name'],
                 },
                 {
                     model: countriesModel,
@@ -342,7 +343,7 @@ export async function getCandidateByIdAndProgramId(
         if (candidateData.job_category) {
             candidateData.job_category_id = {
                 id: candidateData.job_category.id,
-                name: candidateData?.job_category?.category?.category_name
+                name: candidateData?.job_category?.name
             };
             delete candidateData.job_category;
         }
