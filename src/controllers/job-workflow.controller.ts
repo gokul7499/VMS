@@ -5508,7 +5508,7 @@ function addRecipientsToLevel(levelData: any, result: any, row: any, recipientTy
             actor_last_name: user.actor_last_name,
             actor_by_avatar: user.actor_by_avatar,
             is_admin_override: user.is_admin_override,
-            status: user.receipentStatus,
+            status: recipient_status,
             updated_on: user.updated_on,
             notes: user.notes,
             reason: user.reason,
