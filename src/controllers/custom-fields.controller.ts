@@ -60,8 +60,15 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
         trace_id: traceId,
       });
     }
-
-    const customField = await createCustomField({ label, name, module_id, ...customFieldData }, user);
+    const seqNumber = await CustomField.max('seq_number', {
+      where: {
+        program_id,
+        module_id,
+        is_deleted: false,
+      },
+    }) as number || null;
+    const newSeqNumber = (seqNumber || 0) + 1;
+    const customField = await createCustomField({ label, name, module_id, seq_number: newSeqNumber, ...customFieldData }, user);
     if (!customField?.id) {
       throw new Error('Failed to create custom field');
     }
@@ -1233,3 +1240,35 @@ export const advanceFilterCustomFiled = async (request: FastifyRequest, reply: F
     });
   }
 }
+
+export async function reorderCustomFields(request: FastifyRequest, reply: FastifyReply) {
+  const traceId = generateCustomUUID();
+  const { program_id } = request.params as { program_id: string };
+  const { module_name, custom_field_ids } = request.body as {
+    module_name: string;
+    custom_field_ids: { id: string; seq_number: number }[];
+  };
+
+  await sequelize.transaction(async (t) => {
+    await Promise.all(
+      custom_field_ids.map(field =>
+        CustomField.update(
+          { seq_number: field.seq_number },
+          {
+            where: { program_id, id: field.id, module_name },
+            transaction: t
+          }
+        )
+      )
+    );
+  });
+
+  reply.send({
+    status_code: 200,
+    message: "Custom field sequence updated successfully",
+    traceId: traceId,
+  });
+}
+
+
+
