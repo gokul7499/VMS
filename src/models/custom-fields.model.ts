@@ -163,6 +163,10 @@ CustomField.init(
       type: DataTypes.JSON,
       allowNull: true,
     },
+    seq_number:{
+      type: DataTypes.INTEGER,
+      allowNull: true
+    },
     created_on: {
       type: DataTypes.BIGINT.UNSIGNED,
       defaultValue: Date.now(),
