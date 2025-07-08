@@ -467,12 +467,12 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
         "id", "name", "is_enabled", "updated_on", "created_on", "module_id",
         "module_name", "field_type", "is_required", "label", "decimal_place",
         "meta_data", "linked_modules", "is_readonly", "supporting_text",
-        "placeholder", "description", "can_edit", "can_view"
+        "placeholder", "description", "can_edit", "can_view","seq_number"
       ],
       replacements: {
         userType: userType
       },
-      order: [["updated_on", "ASC"]],
+      order: [["seq_number", "ASC"]],
       offset,
       limit: limitNumber,
     });
