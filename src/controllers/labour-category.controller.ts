@@ -116,14 +116,20 @@ export async function createIndustries(
 
 export const getIndustries = async (request: FastifyRequest, reply: FastifyReply) => {
   const { program_id } = request.params as { program_id: string };
-  const { name, is_enabled, updated_on} = request.query as {
-    name: string;
-    is_enabled: boolean | string;
-    updated_on: string;
+  const { name, is_enabled, updated_on, page, limit } = request.query as {
+    name?: string;
+    is_enabled?: boolean | string;
+    updated_on?: string;
+    page?: string;
+    limit?: string;
   };
   const traceId = generateCustomUUID();
 
   try {
+    const pageNumber = page ? parseInt(page, 10) : null;
+    const pageSize = limit ? parseInt(limit, 10) : null;
+
+    const offset = pageNumber && pageSize ? (pageNumber - 1) * pageSize : undefined;
 
     const whereCondition: any = { is_deleted: false, program_id };
 
@@ -134,7 +140,7 @@ export const getIndustries = async (request: FastifyRequest, reply: FastifyReply
     if (is_enabled !== undefined) {
       whereCondition.is_enabled = is_enabled === 'true';
     }
-    
+
     if (updated_on) {
       const dateRange = updated_on.split(',');
       if (dateRange.length === 2) {
@@ -144,11 +150,18 @@ export const getIndustries = async (request: FastifyRequest, reply: FastifyReply
       }
     }
 
-    const { rows: labour_categories, count } = await IndustriesModel.findAndCountAll({
+    const queryOptions: any = {
       where: whereCondition,
-      attributes: ['id', 'name', 'is_enabled', 'created_on', 'updated_on','code'],
+      attributes: ['id', 'name', 'is_enabled', 'created_on', 'updated_on', 'code'],
       order: [['updated_on', 'DESC']]
-    });
+    };
+
+    if (pageNumber && pageSize) {
+      queryOptions.limit = pageSize;
+      queryOptions.offset = offset;
+    }
+
+    const { rows: labour_categories, count } = await IndustriesModel.findAndCountAll(queryOptions);
 
     if (labour_categories.length === 0) {
       return reply.status(200).send({
@@ -159,15 +172,22 @@ export const getIndustries = async (request: FastifyRequest, reply: FastifyReply
       });
     }
 
-    reply.status(200).send({
+    return reply.status(200).send({
       status_code: 200,
       trace_id: traceId,
-      message: 'labour categories retrieved successfully',
-      total_records: count,
+      message: 'Labour categories retrieved successfully',
+      ...(pageNumber && pageSize
+        ? {
+            items_per_page: pageSize,
+            current_page: pageNumber,
+            total_records: count,
+          }
+        : {}),
       labour_categories
     });
+
   } catch (error) {
-    reply.status(500).send({
+    return reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error',
       trace_id: traceId,
@@ -175,6 +195,7 @@ export const getIndustries = async (request: FastifyRequest, reply: FastifyReply
     });
   }
 };
+
 
 export async function getIndustriesById(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
