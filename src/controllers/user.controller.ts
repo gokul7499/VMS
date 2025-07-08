@@ -21,6 +21,7 @@ import { searchSimilarProfiles } from "../utility/create-candidate";
 import { createCandidateHistory } from "../utility/candidate-history";
 import GlobalRepository from "../repositories/global.repository";
 import { parseValue } from "../utility/parse-value";
+import CandidateCustomFieldModel from "../models/cadidate-custom-field.model";
 const jobTempletRepositories = new JobTempletRepository();
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
@@ -236,6 +237,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
   if (!user) {
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
   }
+
   const userId = user?.sub;
   const traceId = (request.body as any)?.trace_id;
 
@@ -275,13 +277,16 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     }
 
     let newUser;
-    const userType = Array.isArray(user_group_mapping) ? user_group_mapping[0].user_type.toLowerCase() : user_group_mapping.user_type.toLowerCase();
+    const userType = Array.isArray(user_group_mapping)
+      ? user_group_mapping[0].user_type.toLowerCase()
+      : user_group_mapping.user_type.toLowerCase();
+
     const { id, ...userWithoutId } = user;
-    let candidateId;
+    let candidateId: any;
     let candidateData: any;
 
     if (userType === "client" || userType === "msp") {
-      newUser = await User.create({ ...userWithoutId, user_id: user.id, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
+      newUser = await User.create({ ...userWithoutId, user_id: user.id, user_type: userType, created_by: userId, updated_by: userId }, { transaction });
     } else if (userType === "candidate") {
       const program_id = user.program_id;
 
@@ -293,7 +298,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
         where: {
           program_id: program_id,
           tenant_id: user.tenant_id,
-          status: 'Active', 
+          status: "Active",
         },
       });
 
@@ -305,7 +310,6 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
           trace_id: traceId,
         });
       }
-
 
       let vendor_id = vendor?.id ?? null;
 
@@ -341,18 +345,26 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
         unique_id: uniqueId
       }, { transaction });
 
-      candidateId = candidateData.id
-      vendor_id = user.tenant_id
-      const candidate_unique_code = candidateData?.candidate_id
+      candidateId = candidateData.id;
+      vendor_id = user.tenant_id;
+      const candidate_unique_code = candidateData?.candidate_id;
+
+      if (Array.isArray(user.custom_fields) && user.custom_fields.length > 0) {
+        const candidateCustomFields = user.custom_fields.map((field: { id: string, value: any }) => ({
+          candidate_id: candidateId,
+          customfield_id: field.id,
+          value: field.value ?? null
+        }));
+        await CandidateCustomFieldModel.bulkCreate(candidateCustomFields, { transaction });
+      }
 
       createCandidateInAi(user, candidateId, vendor_id, authHeader, program_id, userId, uniqueId, candidateData, candidate_unique_code);
-
     } else if (userType === "vendor") {
-       const vendor = await ProgramVendor.findOne({
+      const vendor = await ProgramVendor.findOne({
         where: {
           program_id: user.program_id,
           tenant_id: user.tenant_id,
-          status: 'Active', 
+          status: "Active",
         },
       });
 
@@ -364,48 +376,42 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
           trace_id: traceId,
         });
       }
+
       if (user.program_id) {
-        newUser = await User.create({ ...user, user_id: user.id, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
+        newUser = await User.create({ ...user, user_id: user.id, user_type: userType, created_by: userId, updated_by: userId }, { transaction });
       } else {
-        newUser = await User.create({ ...userWithoutId, user_id: user.id, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
+        newUser = await User.create({ ...userWithoutId, user_id: user.id, user_type: userType, created_by: userId, updated_by: userId }, { transaction });
       }
     } else {
-      newUser = await User.create({ ...userWithoutId, user_id: user.id, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
+      newUser = await User.create({ ...userWithoutId, user_id: user.id, user_type: userType, created_by: userId, updated_by: userId }, { transaction });
     }
+
     if (user.foundational_data && Array.isArray(user.foundational_data)) {
       for (const foundationalEntry of user.foundational_data) {
-        await UserMasterDataModel.create(
-          {
-            user_id: user.id,
-            master_data: foundationalEntry.master_data,
-            associated_master_data: foundationalEntry.associated_master_data,
-            default_master_data: foundationalEntry.default_master_data,
-            is_all_associated: foundationalEntry.is_all_associated,
-          },
-          { transaction }
-        );
+        await UserMasterDataModel.create({
+          user_id: user.id,
+          master_data: foundationalEntry.master_data,
+          associated_master_data: foundationalEntry.associated_master_data,
+          default_master_data: foundationalEntry.default_master_data,
+          is_all_associated: foundationalEntry.is_all_associated,
+        }, { transaction });
       }
     }
 
     if (user.foundational_data && Array.isArray(user.foundational_data)) {
       for (const foundationalEntry of user.foundational_data) {
-        await UserMasterDataModel.create(
-          {
-            user_id: user.id,
-            master_data: foundationalEntry.master_data,
-            associated_master_data: foundationalEntry.associated_master_data,
-            default_master_data: foundationalEntry.default_master_data,
-            is_all_associated: foundationalEntry.is_all_associated,
-          },
-          { transaction }
-        );
+        await UserMasterDataModel.create({
+          user_id: user.id,
+          master_data: foundationalEntry.master_data,
+          associated_master_data: foundationalEntry.associated_master_data,
+          default_master_data: foundationalEntry.default_master_data,
+          is_all_associated: foundationalEntry.is_all_associated,
+        }, { transaction });
       }
     }
 
     if (Array.isArray(user.custom_fields) && user.custom_fields.length > 0) {
-      const customField = user.custom_fields.map((field: {
-        id: any; value: any;
-      }) => ({
+      const customField = user.custom_fields.map((field: { id: any; value: any }) => ({
         program_id: user.program_id,
         user_id: user.id,
         customfield_id: field.id,
@@ -416,15 +422,16 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 
     if (Array.isArray(user_group_mapping)) {
       for (const mapping of user_group_mapping) {
-        await UserMapping.create({ ...mapping, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
+        await UserMapping.create({ ...mapping, user_type: userType, created_by: userId, updated_by: userId }, { transaction });
       }
     } else {
-      await UserMapping.create({ ...user_group_mapping, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
+      await UserMapping.create({ ...user_group_mapping, user_type: userType, created_by: userId, updated_by: userId }, { transaction });
     }
-    console.log("Candidate History ------------------------->")
+
+    console.log("Candidate History ------------------------->");
     const compareData = {};
     if (userType === "candidate") {
-      console.log("Call  Candidate History")
+      console.log("Call  Candidate History");
       createCandidateHistory(user.program_id, authHeader, candidateData, compareData, "Candidate Profile Created")
         .catch(error => {
           console.error("Failed to create candidate history:", error);
@@ -438,6 +445,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       id: newUser instanceof User ? newUser.id : candidateId,
       trace_id: traceId,
     });
+
   } catch (error: any) {
     await transaction.rollback();
     console.error(error);
@@ -449,6 +457,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
         trace_id: traceId,
       });
     }
+
     return reply.status(500).send({
       status_code: 500,
       message: "Internal server error",
@@ -458,11 +467,14 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
+
 function createCandidateInAi(user: any, candidateId: string, vendor_id: any, authHeader: string, program_id: string, userId: string, uniqueId: string, candidateData: any, candidate_unique_code: any) {
   const resumeText = user.resume_url;
 
   searchSimilarProfiles(candidateId, resumeText, vendor_id, authHeader, program_id, userId, uniqueId, user, candidateData, candidate_unique_code);
 }
+
+
 
 export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
   const { id, program_id } = request.params as { id: string; program_id: string };

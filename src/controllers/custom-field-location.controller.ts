@@ -6,6 +6,7 @@ import { baseSearch } from '../utility/baseService'
 import generateCustomUUID from '../utility/genrateTraceId';
 import { decodeToken } from '../middlewares/verifyToken';
 import logger from '../plugins/logger-plugin'
+
 export async function createCustomFieldLocation(
   request: FastifyRequest,
   reply: FastifyReply,
