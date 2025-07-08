@@ -154,10 +154,10 @@ Candidate.init(
             type: DataTypes.JSON,
             allowNull: true,
         },
-        custom_fields: {
-            type: DataTypes.JSON,
-            allowNull: true,
-        },
+        // custom_fields: {
+        //     type: DataTypes.JSON,
+        //     allowNull: true,
+        // },
         do_not_rehire: {
             type: DataTypes.TINYINT,
             allowNull: true,

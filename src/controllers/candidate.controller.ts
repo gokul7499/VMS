@@ -7,7 +7,7 @@ import countriesModel from "../models/countries.model";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { ProgramVendor } from "../models/program-vendor.model";
-import { Op } from "sequelize";
+import { Op, QueryTypes } from "sequelize";
 import { CandidateCodeGenerate, CandidateUniqueIdGenerate } from "../utility/code-genrate-service";
 import { fetchSubmittedCandidate, fetchUnavailableCandidates } from "../utility/submission-candidate";
 import User from "../models/user.model";
@@ -18,6 +18,9 @@ import JobCategoryModel from "../models/job-category.model";
 import { sequelize } from "../config/instance";
 import { createCandidateHistory } from "../utility/candidate-history";
 import CustomField from "../models/custom-fields.model";
+import CandidateCustomFieldModel from "../models/cadidate-custom-field.model";
+import { getCustomsField } from "../utility/get-custom-field";
+import { parseValue } from "../utility/parse-value";
 const candidateRepository = new CandidateRepository();
 
 export async function createCandidate(request: FastifyRequest, reply: FastifyReply) {
@@ -406,69 +409,17 @@ export async function getCandidateByIdAndProgramId(
             }
         });
 
-        let CustomFields: any[] = [];
-
-        if (Array.isArray(candidateData.custom_fields) && candidateData.custom_fields.length > 0) {
-            const customFieldIds = candidateData.custom_fields
-                .map((field: any) => field.id)
-                .filter(Boolean);
-
-            const customFieldValues = candidateData.custom_fields
-                .map((field: any) => {
-                    if (typeof field.value === 'string') {
-                        return field.value.trim().replace(/^"+|"+$/g, '');
-                    } else if (typeof field.value === 'object' && field.value?.user_id) {
-                        return field.value.user_id;
-                    }
-                    return null;
-                })
-                .filter(Boolean);
-
-            const [customFieldDefs, users] = await Promise.all([
-                CustomField.findAll({
-                    where: {
-                        id: customFieldIds,
-                        is_enabled: true,
-                        is_deleted: false,
-                        program_id: candidateData.program_id,
-                    },
-                    attributes: ['id', 'name', 'field_type', 'label']
-                }),
-                User.findAll({
-                    where: {
-                        user_id: customFieldValues,
-                        program_id: candidateData.program_id
-                    },
-                    attributes: ['user_id', 'first_name', 'last_name']
-                })
-            ]);
-
-            CustomFields = candidateData.custom_fields
-                .map((field: any) => {
-                    const customFieldDef = customFieldDefs.find((cf: any) => cf.id === field.id);
-                    if (!customFieldDef) return null; 
-
-                    const rawValue = typeof field.value === 'string'
-                        ? field.value.trim().replace(/^"+|"+$/g, '')
-                        : field.value?.user_id || null;
-
-                    const matchedUser = users.find((user: any) => user.user_id === rawValue);
-
-                    return {
-                        id: field.id,
-                        value: field.value,
-                        name: customFieldDef.name,
-                        field_type: customFieldDef.field_type,
-                        label: customFieldDef.label,
-                        custom_field_id: customFieldDef.id,
-                        manager_name: matchedUser
-                            ? `${matchedUser.first_name} ${matchedUser.last_name}`
-                            : null
-                    };
-                })
-                .filter(Boolean); 
-        }
-
+        const [customFields] = await sequelize.query(
+            getCustomsField(candidateData.id, 'candidate_custom_fields', 'candidate_id', 'customfield_id'),
+            {
+                replacements: { id: candidateData.id },
+                type: QueryTypes.SELECT
+            }
+        ) as any;
+        customFields.custom_fields = customFields.custom_fields.map((field: any) => ({
+            ...field,
+            value: parseValue(field.value),
+        }));
         // const workerClassification = await getSubmissionCandidate(program_id, id, token)
         return reply.status(200).send({
             status_code: 200,
@@ -476,7 +427,7 @@ export async function getCandidateByIdAndProgramId(
             candidate: {
                 ...candidateData,
                 qualifications: qualificationsData,
-                custom_fields: CustomFields,
+                custom_fields: customFields?.custom_fields || [],
                 // worker_classification: workerClassification.submission_candidate.worker_classification,
             },
             trace_id: traceId,
@@ -499,7 +450,7 @@ export async function updateCandidateByIdAndProgramId(
     const traceId = generateCustomUUID();
     try {
         const { program_id, id } = request.params as { program_id: string, id: string };
-        const updates = request.body as candidateInterface;
+        const { custom_fields, ...updates } = request.body as candidateInterface;
         // const user = request?.user;
         const authHeader = request.headers.authorization;
 
@@ -555,9 +506,9 @@ export async function updateCandidateByIdAndProgramId(
 
 
 
-        let uniqueId = await CandidateUniqueIdGenerate(program_id, updates);
+        // let uniqueId = await CandidateUniqueIdGenerate(program_id, updates);
         const [updatedRows] = await candidateModel.update(
-            { ...updates, updated_by: userId, updated_on: Date.now(), unique_id: uniqueId },
+            { ...updates, updated_by: userId, updated_on: Date.now() },
             {
                 where: {
                     program_id,
@@ -579,6 +530,17 @@ export async function updateCandidateByIdAndProgramId(
                 is_deleted: false
             }
         });
+
+        if (Array.isArray(custom_fields)) {
+            await CandidateCustomFieldModel.destroy({ where: { candidate_id: updatedRecord?.id } });
+            const customField = custom_fields.map((field: { id: string; value: any }) => ({
+                program_id,
+                customfield_id: field.id,
+                value: field.value,
+                candidate_id: updatedRecord?.id,
+            }));
+            await CandidateCustomFieldModel.bulkCreate(customField);
+        }
         createCandidateHistory(program_id, authHeader, existingRecord?.dataValues, updatedRecord?.dataValues, "Candidate Profile Updated")
             .catch(error => {
                 console.error("Failed to create candidate history:", error);
