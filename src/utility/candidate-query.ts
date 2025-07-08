@@ -10,9 +10,9 @@ class CandidateRepository {
 
         if (replacements.candidate_id) whereClause += ` AND c.candidate_id LIKE :candidate_id`;
         if (replacements.first_name) {
-            whereClause += ` 
-                AND (c.first_name LIKE :first_name 
-                OR c.last_name LIKE :first_name 
+            whereClause += `
+                AND (c.first_name LIKE :first_name
+                OR c.last_name LIKE :first_name
                 OR CONCAT_WS(' ', c.first_name, c.last_name) LIKE :first_name)`;
         }
         if (replacements.middle_name) whereClause += ` AND c.middle_name LIKE :middle_name`;
@@ -26,13 +26,11 @@ class CandidateRepository {
         if (replacements.updated_on) {
             whereClause += ` AND c.updated_on = :updated_on`;
         }
-        if (replacements.availability_date) {
-            whereClause += ` AND CAST(JSON_UNQUOTE(JSON_EXTRACT('$.availability_date')) AS UNSIGNED) = :availability_date`;
-        }
+
         if (replacements.search) {
             whereClause += ` AND (
-            c.first_name LIKE :search OR 
-            c.last_name LIKE :search OR 
+            c.first_name LIKE :search OR
+            c.last_name LIKE :search OR
             c.email LIKE :search OR
             CONCAT(c.first_name, ' ', c.last_name, c.email) LIKE :search
           )`
@@ -46,7 +44,7 @@ class CandidateRepository {
             } else if (replacements.associate_hierarchy_ids && replacements.associate_hierarchy_ids.length > 0) {
                 const hierarchyIds = replacements.associate_hierarchy_ids.map((id: string) => `'${id.trim()}'`).join(',');
                 whereClause += ` AND c.vendor_id IN (
-                    SELECT id FROM program_vendors 
+                    SELECT id FROM program_vendors
                     WHERE program_id = :program_id
                     AND (
                         all_hierarchy = true
@@ -58,8 +56,8 @@ class CandidateRepository {
         }
 
         const countQuery = `
-            SELECT COUNT(*) as count 
-            FROM candidates c 
+            SELECT COUNT(*) as count
+            FROM candidates c
             ${whereClause};
         `;
 
@@ -71,40 +69,40 @@ class CandidateRepository {
 
         const query = `
         SELECT DISTINCT
-        c.id, 
-        c.first_name, 
-        c.middle_name, 
-        c.last_name, 
-        c.is_active, 
-        c.name, 
-        c.email, 
-        c.program_id, 
-        c.candidate_id, 
-        c.worker_type_id, 
-        c.title, 
-        c.birth_date, 
-        c.updated_on, 
-        c.state_national_id, 
-        c.do_not_rehire_notes, 
-        c.do_not_rehire_reason, 
+        c.id,
+        c.first_name,
+        c.middle_name,
+        c.last_name,
+        c.is_active,
+        c.name,
+        c.email,
+        c.program_id,
+        c.candidate_id,
+        c.worker_type_id,
+        c.title,
+        c.birth_date,
+        c.updated_on,
+        c.state_national_id,
+        c.do_not_rehire_notes,
+        c.do_not_rehire_reason,
         c.do_not_rehire,
         c.is_pre_identified,
         CAST(JSON_UNQUOTE(JSON_EXTRACT(c.contacts, '$[0].number')) AS CHAR) AS phone_number,
         JSON_OBJECT(
-            'id', v.id,  
+            'id', v.id,
             'vendor_name', v.max_vendor_name,
-            'display_name', v.max_display_name                
+            'display_name', v.max_display_name
         ) AS vendor
         FROM candidates c
         LEFT JOIN (
-        SELECT 
+        SELECT
             MAX(id) AS id,
             MAX(vendor_name) AS max_vendor_name,
             MAX(display_name) AS max_display_name
         FROM program_vendors
-        GROUP BY id  
-        ) v 
-        ON c.vendor_id = v.id  
+        GROUP BY id
+        ) v
+        ON c.vendor_id = v.id
         ${whereClause}
         ORDER BY c.updated_on DESC
         LIMIT :limit OFFSET :offset;
