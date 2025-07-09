@@ -314,7 +314,7 @@ export const updateWorkflowStatus = async (
     const userId = user?.sub
     const { program_id, id } = request.params;
     let updates = request.body as any;
-    const job_id = (updates as any[])[0]?.job_id;
+    const job_id = Array.isArray(updates) ? updates[0]?.job_id : updates.job_id;
 
     // Convert to array if not already
     if (!Array.isArray(updates)) {

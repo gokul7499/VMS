@@ -949,84 +949,103 @@ export async function getParentHierarchies(
 
 export const getMspByClient = async (request: FastifyRequest, reply: FastifyReply) => {
   const { program_id } = request.params as { program_id: string };
-  const { client_id } = request.query as { client_id?: string };
+  const { client_id, hierarchy_id } = request.query as { client_id?: string; hierarchy_id?: string };
   const traceId = generateCustomUUID();
 
   try {
-    if (!client_id) {
+    if (!client_id && !hierarchy_id) {
       return reply.status(400).send({
         status_code: 400,
         trace_id: traceId,
-        message: "client_id is required in query parameters",
+        message: "At least client_id or hierarchy_id is required in query parameters",
       });
     }
 
-    const [user]: any = await sequelize.query(userData, {
-      replacements: { client_id, program_id },
-      type: QueryTypes.SELECT,
-    }
-    );
-
-    if (!user) {
-      return reply.status(404).send({
-        status_code: 404,
-        trace_id: traceId,
-        message: "User not found for given client_id and program_id",
-      });
-    }
-
-    const { associate_hierarchy_ids, is_all_hierarchy_associate, user_type } = user;
     let managedByIds: string[] = [];
 
-    if (is_all_hierarchy_associate || user_type === "super_user") {
-      const hierarchies = await HierarchiesModel.findAll({
+    if (hierarchy_id) {
+      const hierarchy = await HierarchiesModel.findOne({
         where: {
+          id: hierarchy_id,
           program_id,
-          is_enabled: true
-        },
-        attributes: ['managed_by'],
-        raw: true
-      });
-
-      managedByIds = [
-        ...new Set(hierarchies.map((h: any) => h.managed_by)),
-      ];
-    } else {
-      const hierarchies = await HierarchiesModel.findAll({
-        where: {
-          id: associate_hierarchy_ids,
           is_enabled: true,
-          program_id
         },
-        attributes: ['managed_by'],
-        raw: true
+        attributes: ["managed_by"],
+        raw: true,
       });
 
-      managedByIds = [
-        ...new Set(hierarchies.map((h: any) => h.managed_by)),
-      ];
+      if (!hierarchy) {
+        return reply.status(404).send({
+          status_code: 404,
+          trace_id: traceId,
+          message: "Hierarchy not found for the given hierarchy_id and program_id",
+        });
+      }
+
+      managedByIds = [hierarchy.managed_by];
+    } else {
+      const [user]: any = await sequelize.query(userData, {
+        replacements: { client_id, program_id },
+        type: QueryTypes.SELECT,
+      });
+
+      if (!user) {
+        return reply.status(404).send({
+          status_code: 404,
+          trace_id: traceId,
+          message: "User not found for given client_id and program_id",
+        });
+      }
+
+      const { associate_hierarchy_ids, is_all_hierarchy_associate, user_type } = user;
+
+      if (is_all_hierarchy_associate || user_type === "super_user") {
+        const hierarchies = await HierarchiesModel.findAll({
+          where: {
+            program_id,
+            is_enabled: true,
+          },
+          attributes: ["managed_by"],
+          raw: true,
+        });
+
+        managedByIds = [...new Set(hierarchies.map((h: any) => h.managed_by))];
+      } else {
+        const hierarchies = await HierarchiesModel.findAll({
+          where: {
+            id: associate_hierarchy_ids,
+            program_id,
+            is_enabled: true,
+          },
+          attributes: ["managed_by"],
+          raw: true,
+        });
+
+        managedByIds = [...new Set(hierarchies.map((h: any) => h.managed_by))];
+      }
     }
 
     if (!managedByIds.length) {
       return reply.status(200).send({
         status_code: 200,
         trace_id: traceId,
-        message: "No MSP found for the given program",
+        message: "No MSP found for the given criteria",
         data: [],
       });
     }
 
     const isSelfManagedPresent = managedByIds.includes("self-managed");
+
     const tenants = await TenantModel.findAll({
       where: {
-        id: managedByIds,
+        id: managedByIds.filter((id) => id !== "self-managed"),
       },
-      attributes: ['id', 'name', 'display_name'],
+      attributes: ["id", "name", "display_name"],
     });
 
     if (isSelfManagedPresent) {
       tenants.unshift({
-        id: 'self-managed',
+        id: "self-managed",
         name: "SELF_MANAGED",
         display_name: "SELF MANAGED",
       } as any);
@@ -1035,10 +1054,9 @@ export const getMspByClient = async (request: FastifyRequest, reply: FastifyRepl
     return reply.status(200).send({
       status_code: 200,
       trace_id: traceId,
-      message: "MSP fetched successfully.",
-      data: tenants
+      message: "MSP fetched successfully",
+      data: tenants,
     });
-
   } catch (error: any) {
     console.error(error);
     return reply.status(500).send({
@@ -1049,6 +1067,7 @@ export const getMspByClient = async (request: FastifyRequest, reply: FastifyRepl
     });
   }
 };
+
 
 export async function bulkCreateHierarchies(request: FastifyRequest, reply: FastifyReply) {
   const { program_id } = request.params as { program_id: string };

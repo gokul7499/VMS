@@ -7,6 +7,7 @@ import {
   JobTemplateQualificationInterface,
   JobTemplateDistSchedule,
   GetJobTemplatesQuery,
+  JobTemplate
 } from "../interfaces/job-template.interface";
 import generateCustomUUID from "../utility/genrateTraceId";
 import jobTemplateQualificationModel from "../models/job-template-qualification.model";
@@ -1280,8 +1281,8 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
     }
 
     if (job_id) {
-      dynamicConditions.push(`job_templates.job_id = :job_id`);
-      replacements.job_id = job_id;
+      dynamicConditions.push(`job_templates.job_id LIKE :job_id`);
+      replacements.job_id = `%${job_id}%`;
     }
 
     if (is_enabled !== undefined) {
@@ -1612,6 +1613,47 @@ export async function getListHierarchies(request: FastifyRequest, reply: Fastify
       trace_id: traceId,
       message: "An error occurred while fetching common hierarchies.",
       error: error.message
+    });
+  }
+}
+
+export async function getAllJobTemplate(request: FastifyRequest, reply: FastifyReply) {
+  const trace_id = generateCustomUUID();
+
+  try {
+    const { program_id } = request.params as { program_id: string };
+    const { labour_category } = request.query as { labour_category?: string };
+
+    const jobTemplates: JobTemplate[] = await jobTemplateModel.findAll({
+      attributes: ['id', 'template_name'],
+      where: {
+        program_id,
+        ...(labour_category && { labour_category })
+      },
+      raw: true
+    });
+
+    if (!jobTemplates || jobTemplates.length === 0) {
+      return reply.status(200).send({
+        status_code: 200,
+        message: "No job templates found.",
+        job_templates: [],
+        trace_id,
+      });
+    }
+
+    reply.status(200).send({
+      status_code: 200,
+      message: "Job templates fetched successfully.",
+      job_templates: jobTemplates,
+      trace_id,
+    });
+
+  } catch (error: any) {
+    reply.status(500).send({
+      status_code: 500,
+      message: error.message,
+      trace_id,
     });
   }
 }

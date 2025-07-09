@@ -314,8 +314,8 @@ export async function deleteTenant(request: FastifyRequest, reply: FastifyReply)
 }
 
 export async function searchTenantsWithProgramCount(request: FastifyRequest, reply: FastifyReply) {
-    const searchFields = ["id", "name", "display_name", "contacts", "created_on", "is_enabled", "type"];
-    const responseFields = ["id", "name", "display_name", "contacts", "created_on", "is_enabled", "type", "logo"];
+    const searchFields = ["id", "name", "display_name", "contacts", "created_on", "is_enabled", "type", "vendor_code"];
+    const responseFields = ["id", "name", "display_name", "contacts", "created_on", "is_enabled", "type", "logo","vendor_code"];
     const traceId = generateCustomUUID();
     try {
         const query = request.query as Record<string, string>;
