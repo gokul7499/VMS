@@ -5444,13 +5444,13 @@ async function processProgramRoleUsers(context: any, row: any): Promise<any> {
                 return userData;
             })
         );
-        
         users.push(...chunkResults.filter(Boolean));
     }
     
     if (users.length === 0) return null;
     
-    const input_value = users.map(user => ({
+    const input_value = users.map(user => (
+        {
         id: user.id,
         name: `${user.first_name} ${user.last_name}`.trim(),
         email: user.email,
@@ -5500,6 +5500,8 @@ function addRecipientsToLevel(levelData: any, result: any, row: any, recipientTy
     let recipients = [];
     
     if (Array.isArray(input_value)) {
+        console.log("Processing multiple recipients:", JSON.stringify(input_value, null, 2));
+        
         recipients = input_value.map(user => ({
             name: getRecipientName(user),
             first_name: user.first_name,
@@ -5509,7 +5511,7 @@ function addRecipientsToLevel(levelData: any, result: any, row: any, recipientTy
             actor_last_name: user.actor_last_name,
             actor_by_avatar: user.actor_by_avatar,
             is_admin_override: user.is_admin_override,
-            status: recipient_status,
+            status: user.receipentStatus,
             updated_on: user.updated_on,
             notes: user.notes,
             reason: user.reason,
