@@ -221,33 +221,37 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
     const traceId = generateCustomUUID();
     const transaction = await sequelize.transaction();
     const user = request?.user;
-
     const userId = user?.sub;
 
     try {
-        const existingFoundationalDataWithSameName = await foundationalData.findOne({
-            where: { name, program_id, is_deleted: false },
-        });
-
-        if (existingFoundationalDataWithSameName) {
-            return reply.status(400).send({
-                status_code: 400,
-                message: "Master Data Already Exist.",
-                trace_id: traceId,
-            });
-        }
-
-        const existingFoundationalDataWithSameCode = await foundationalData.findOne({
+        const duplicateCheck = await foundationalData.findOne({
             where: {
-                code: sequelize.where(sequelize.fn('lower', sequelize.col('code')), sequelize.fn('lower', code)),
+                [Op.or]: [
+                    { name: name.trim() },
+                    {
+                        code: sequelize.where(
+                            sequelize.fn('lower', sequelize.col('code')),
+                            sequelize.fn('lower', code.trim())
+                        )
+                    }
+                ],
                 program_id,
+                is_deleted: false,
+                foundational_data_type_id: foundational_data.foundational_data_type_id,
             },
+            attributes: ['name', 'code'],
+            transaction,
         });
 
-        if (existingFoundationalDataWithSameCode) {
+        if (duplicateCheck) {
+            const isDuplicateName = duplicateCheck.name === name.trim();
+            const errorMessage = isDuplicateName
+                ? "Master data with same name already exist."
+                : "Master data with same code already exist.";
+
             return reply.status(400).send({
                 status_code: 400,
-                message: "Master Data with the same code already exists.",
+                message: errorMessage,
                 trace_id: traceId,
             });
         }
@@ -539,117 +543,117 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
 }
 
 export async function bulkCreateMasterData(
-  request: FastifyRequest,
-  reply: FastifyReply
+    request: FastifyRequest,
+    reply: FastifyReply
 ) {
-  const { program_id } = request.params as { program_id: string };
-  const masterDataList = request.body as any[];
-  const traceId = generateCustomUUID();
-  const user = request?.user;
+    const { program_id } = request.params as { program_id: string };
+    const masterDataList = request.body as any[];
+    const traceId = generateCustomUUID();
+    const user = request?.user;
 
-  const results: any[] = [];
+    const results: any[] = [];
 
-  for (const data of masterDataList) {
-    const transaction = await sequelize.transaction();
-    try {
-      const { master_data_type_name, name, code, is_enabled, is_all_hierarchy_associated, hierarchy } = data;
+    for (const data of masterDataList) {
+        const transaction = await sequelize.transaction();
+        try {
+            const { master_data_type_name, name, code, is_enabled, is_all_hierarchy_associated, hierarchy } = data;
 
-      const masterDataTypes = await FoundationalDataTypes.findOne({
-        where: {
-          name: master_data_type_name,
-          program_id,
-          is_deleted: false,
-        },
-      });
-      if (!masterDataTypes) {
-        throw new Error(`Master data type "${master_data_type_name}" not found`);
-      }
+            const masterDataTypes = await FoundationalDataTypes.findOne({
+                where: {
+                    name: master_data_type_name,
+                    program_id,
+                    is_deleted: false,
+                },
+            });
+            if (!masterDataTypes) {
+                throw new Error(`Master data type "${master_data_type_name}" not found`);
+            }
 
-      const existingByName = await foundationalData.findOne({
-        where: { name, program_id, is_deleted: false },
-      });
+            const existingByName = await foundationalData.findOne({
+                where: { name, program_id, is_deleted: false },
+            });
 
-      if (existingByName) {
-        throw new Error(`Master Data "${name}" already exists`);
-      }
+            if (existingByName) {
+                throw new Error(`Master Data "${name}" already exists`);
+            }
 
-      const existingByCode = await foundationalData.findOne({
-        where: {
-          code: sequelize.where(
-            sequelize.fn('lower', sequelize.col('code')),
-            sequelize.fn('lower', code)
-          ),
-          program_id,
-          is_deleted: false,
-        },
-      });
+            const existingByCode = await foundationalData.findOne({
+                where: {
+                    code: sequelize.where(
+                        sequelize.fn('lower', sequelize.col('code')),
+                        sequelize.fn('lower', code)
+                    ),
+                    program_id,
+                    is_deleted: false,
+                },
+            });
 
-      if (existingByCode) {
-        throw new Error(`Master Data with code "${code}" already exists`);
-      }
+            if (existingByCode) {
+                throw new Error(`Master Data with code "${code}" already exists`);
+            }
 
-      const newMasterData = await foundationalData.create(
-        {
-          name,
-          code,
-          is_enabled: true,
-          is_all_hierarchy_associated,
-          foundational_data_type_id: masterDataTypes.id,
-          program_id,
-          created_on: Date.now(),
-          updated_on: Date.now(),
-        },
-        { transaction }
-      );
+            const newMasterData = await foundationalData.create(
+                {
+                    name,
+                    code,
+                    is_enabled: true,
+                    is_all_hierarchy_associated,
+                    foundational_data_type_id: masterDataTypes.id,
+                    program_id,
+                    created_on: Date.now(),
+                    updated_on: Date.now(),
+                },
+                { transaction }
+            );
 
-      if (Array.isArray(hierarchy) && hierarchy.length > 0) {
-        for (const h of hierarchy) {
-          const foundHierarchy = await Hierarchies.findOne({
-            where: {
-              name: h.name,
-              code: h.code,
-              program_id,
-              is_deleted: false,
-            },
-          });
+            if (Array.isArray(hierarchy) && hierarchy.length > 0) {
+                for (const h of hierarchy) {
+                    const foundHierarchy = await Hierarchies.findOne({
+                        where: {
+                            name: h.name,
+                            code: h.code,
+                            program_id,
+                            is_deleted: false,
+                        },
+                    });
 
-          if (!foundHierarchy) {
-            throw new Error(`Hierarchy "${h.name}" with code "${h.code}" not found`);
-          }
+                    if (!foundHierarchy) {
+                        throw new Error(`Hierarchy "${h.name}" with code "${h.code}" not found`);
+                    }
 
-          await MasterDataHierarchy.create(
-            {
-              master_data_id: newMasterData.id,
-              hierarchy_id: foundHierarchy.id,
-            },
-            { transaction }
-          );
+                    await MasterDataHierarchy.create(
+                        {
+                            master_data_id: newMasterData.id,
+                            hierarchy_id: foundHierarchy.id,
+                        },
+                        { transaction }
+                    );
+                }
+            }
+
+            await transaction.commit();
+
+            results.push({
+                status: 'success',
+                foundational_data_id: newMasterData.id,
+                name,
+                code,
+            });
+        } catch (error: any) {
+            await transaction.rollback();
+            results.push({
+                status: 'failed',
+                name: data.name,
+                code: data.code,
+                error: error.message,
+            });
         }
-      }
-
-      await transaction.commit();
-
-      results.push({
-        status: 'success',
-        foundational_data_id: newMasterData.id,
-        name,
-        code,
-      });
-    } catch (error: any) {
-      await transaction.rollback();
-      results.push({
-        status: 'failed',
-        name: data.name,
-        code: data.code,
-        error: error.message,
-      });
     }
-  }
 
-  reply.status(201).send({
-    status_code: 201,
-    trace_id: traceId,
-    message: 'Master data created successfully.',
-  });
+    reply.status(201).send({
+        status_code: 201,
+        trace_id: traceId,
+        message: 'Master data created successfully.',
+    });
 }
 
