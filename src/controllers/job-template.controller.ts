@@ -1611,3 +1611,47 @@ export async function getListHierarchies(request: FastifyRequest, reply: Fastify
     });
   }
 }
+
+
+export async function getAllJobTemplate(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
+  const trace_id = generateCustomUUID();
+
+  try {
+    const { program_id } = request.params as { program_id: string };
+    const { labour_category } = request.query as { labour_category?: string };
+
+    console.log("Received program_id:", program_id);
+    console.log("Received labour_category:", labour_category);
+
+    const templates = await jobTemplateModel.findAll({
+      attributes: ['id', 'template_name'],
+      where: {
+        program_id,
+        ...(labour_category && { labour_category })  // ✅ correct field name
+      }
+    });
+
+    const result = templates.map((template: any) => ({
+      id: template.id,
+      template_name: template.template_name,
+    }));
+
+    reply.status(200).send({
+      status_code: 200,
+      trace_id,
+      job_templates: result,
+    });
+
+  } catch (error) {
+    console.error("Error in getAllJobTemplate:", error);
+
+    reply.status(500).send({
+      status_code: 500,
+      message: "An error occurred while fetching job templates.",
+      trace_id,
+    });
+  }
+}
