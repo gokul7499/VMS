@@ -1892,7 +1892,7 @@ export const getAllRateTypes = (
       ${hasIsEnabled ? "AND rt.is_enabled = :is_enabled" : ""}
       ${isShiftRateValue ? "AND rt.is_shift_rate = :is_shift_rate" : ""}
       ${isBaseRate ? "AND rt.is_base_rate = :is_base_rate" : ""}
-      ${hasDifferentialOn ? "AND JSON_EXTRACT(rt.rate, '$[0].differential_on') LIKE :differential_on" : ""}
+      ${hasDifferentialOn ? "AND JSON_EXTRACT(rt.rate, '$[0].differential_on') LIKE LOWER(:differential_on)" : ""}
       ${hasRateTypeCategory ? "AND rt.rate_type_category = :rate_type_category" : ""}
       ${hasRateTypeCategoryLabels ? "AND picklistitems.value IN (:rate_type_category_labels)" : ""}
       ${hasAbbreviation ? "AND rt.abbreviation LIKE :abbreviation" : ""}
