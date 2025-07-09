@@ -1280,8 +1280,8 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
     }
 
     if (job_id) {
-      dynamicConditions.push(`job_templates.job_id = :job_id`);
-      replacements.job_id = job_id;
+      dynamicConditions.push(`job_templates.job_id LIKE :job_id`);
+      replacements.job_id = `%${job_id}%`;
     }
 
     if (is_enabled !== undefined) {
