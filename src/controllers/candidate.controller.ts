@@ -350,14 +350,17 @@ export async function getCandidateByIdAndProgramId(
         console.log(candidateData, "candidateData")
 
         if (candidateData.labour_category) {
-            candidateData.job_category_id = {
+            candidateData.job_category = {
                 id: candidateData.labour_category.id,
                 name: candidateData?.labour_category?.name
             };
             delete candidateData.labour_category;
         }
          if (candidateData.job_templates) {
-            candidateData.title = candidateData?.job_templates?.template_name
+            candidateData.job_title = {
+                id: candidateData?.job_templates?.id,
+                name: candidateData?.job_templates?.template_name
+            };
             delete candidateData.job_templates;
         }
 
