@@ -19,7 +19,7 @@ import { databaseConfig } from '../config/db';
 import { NotificationEventCode } from '../utility/notification-event-code';
 import WorkflowTriggeredLevel from '../models/workflow-triggering-level-model';
 import WorkflowTriggeredRecipientType from '../models/workflow-triggered-recipient-type.model';
-import { createJobHistory } from '../utility/job-history';
+import { createJobHistory, getUpdatedJobStatus } from '../utility/job-history';
 
 const AUTH_BASE_URL = databaseConfig.config.auth_url;
 let SOURCE_BASE_URL = databaseConfig.config.sourcing_url
@@ -743,16 +743,20 @@ export const updateWorkflowStatus = async (
                 trace_id: traceId,
             });
         }
-              if (job_id) {
+        const newStatus = (job_id && program_id && token)
+            ? await getUpdatedJobStatus(job_id, program_id, token)
+            : null;   
+                  
+              if (job_id && newStatus) {
                try {
                  await createJobHistory(
                    program_id,
                    job_id,
-                   'SOURCING',
+                   newStatus,
                    'Job Status Update',
                    token,
                    userId || '',      
-                   { status: 'SOURCING' }
+                   { status: newStatus }
                  );
                } catch (error) {
                  console.error('Failed to create job history:', error);
