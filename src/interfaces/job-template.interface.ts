@@ -74,3 +74,9 @@ export interface  GetJobTemplatesQuery {
   limit?: number;
   is_shift_rate?:boolean;
 }
+
+
+export interface JobTemplate {
+  id: number;
+  template_name: string;
+}
