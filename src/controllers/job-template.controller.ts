@@ -7,6 +7,7 @@ import {
   JobTemplateQualificationInterface,
   JobTemplateDistSchedule,
   GetJobTemplatesQuery,
+  JobTemplate
 } from "../interfaces/job-template.interface";
 import generateCustomUUID from "../utility/genrateTraceId";
 import jobTemplateQualificationModel from "../models/job-template-qualification.model";
@@ -1613,6 +1614,7 @@ export async function getListHierarchies(request: FastifyRequest, reply: Fastify
 }
 
 
+
 export async function getAllJobTemplate(
   request: FastifyRequest,
   reply: FastifyReply
@@ -1626,23 +1628,18 @@ export async function getAllJobTemplate(
     console.log("Received program_id:", program_id);
     console.log("Received labour_category:", labour_category);
 
-    const templates = await jobTemplateModel.findAll({
+    const jobTemplates: JobTemplate[] = await jobTemplateModel.findAll({
       attributes: ['id', 'template_name'],
       where: {
         program_id,
-        ...(labour_category && { labour_category })  // ✅ correct field name
-      }
+        ...(labour_category && { labour_category })
+      },
+      raw: true 
     });
-
-    const result = templates.map((template: any) => ({
-      id: template.id,
-      template_name: template.template_name,
-    }));
-
     reply.status(200).send({
       status_code: 200,
       trace_id,
-      job_templates: result,
+      job_templates: jobTemplates,
     });
 
   } catch (error) {
