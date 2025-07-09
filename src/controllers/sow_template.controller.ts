@@ -10,6 +10,7 @@ import { getSowTemplateByIdQuery, getSowTemplatesCountQuery, getSowTemplatesQuer
 import { SowTemplate } from '../interfaces/sow_template.interface';
 import SOWTemplateMasterDataModel from '../models/sow-templare-master-data.model';
 import SowTemplateCustomField from '../models/sow-template-custom-flied.model';
+import { getCustomsField } from '../utility/get-custom-field';
 
 export async function createSowTemplate(
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -316,17 +317,24 @@ export const getSowTemplate = async (request: FastifyRequest, reply: FastifyRepl
             ? JSON.parse(sowTemplateRecord.hierarchy)
             : sowTemplateRecord.hierarchy || [];
 
-        sowTemplateRecord.custom_fields = sowTemplateRecord.custom_fields && typeof sowTemplateRecord.custom_fields === 'string'
-            ? JSON.parse(sowTemplateRecord.custom_fields)
-            : sowTemplateRecord.custom_fields || [];
+
+        // sowTemplateRecord.custom_fields = sowTemplateRecord.custom_fields && typeof sowTemplateRecord.custom_fields === 'string'
+        //     ? JSON.parse(sowTemplateRecord.custom_fields)
+        //     : sowTemplateRecord.custom_fields || [];
 
         sowTemplateRecord.master_data = sowTemplateRecord.master_data && typeof sowTemplateRecord.master_data === 'string'
             ? JSON.parse(sowTemplateRecord.master_data)
             : sowTemplateRecord.master_data || [];
 
+         const [customFieldResult] = await sequelize.query(
+                getCustomsField(sowTemplateRecord.id, 'sow_template_custom_field', 'sow_temp_id', 'custom_field_id'),
+                {
+                  replacements: { id: sowTemplateRecord.id },
+                  type: QueryTypes.SELECT,
+                }
+              ) as any;
 
         return reply.status(200).send({
-
             status_code: 200,
             message: 'SOW Template retrieved successfully.',
             data: sowTemplateRecord,
