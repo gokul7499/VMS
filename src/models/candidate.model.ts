@@ -116,7 +116,7 @@ Candidate.init(
             type: DataTypes.BIGINT,
             allowNull: true,
         },
-        job_category_id: {
+        job_category: {
             type: DataTypes.UUID,
             allowNull: true,
             references: {
@@ -124,7 +124,7 @@ Candidate.init(
                 key: "id",
             },
         },
-        title: {
+        job_title: {
             type: DataTypes.STRING,
             allowNull: true,
             references: {
@@ -220,7 +220,7 @@ Candidate.init(
 
 Candidate.belongsTo(Programs, { foreignKey: 'program_id', as: 'program' });
 Candidate.belongsTo(countriesModel, { foreignKey: 'country_id', as: 'country' });
-Candidate.belongsTo(IndustriesModel, { foreignKey: 'job_category_id', as: 'labour_category' });
-Candidate.belongsTo(JobTemplateModel, { foreignKey: 'title', as: 'job_templates' });
+Candidate.belongsTo(IndustriesModel, { foreignKey: 'job_category', as: 'labour_category' });
+Candidate.belongsTo(JobTemplateModel, { foreignKey: 'job_title', as: 'job_templates' });
 Candidate.belongsTo(Tenant, { foreignKey: 'tenant_id', as: 'tenant' });
 export default Candidate;
