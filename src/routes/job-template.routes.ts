@@ -68,8 +68,8 @@ async function jobTemplate(fastify: FastifyInstance) {
   fastify.get("/program/:program_id/list-hierarchies", {
     // preHandler: validatePermissions(Actions.READ, [Permissions.JOB_TEMPLATE])
   }, JobTemplateController.getListHierarchies);
-  
-  fastify.get("/program/:program_id/job-template-simple", JobTemplateController.getAllJobTemplate);
+
+  fastify.get("/program/:program_id/job-templates/list", JobTemplateController.getAllJobTemplate);
 
 };
 

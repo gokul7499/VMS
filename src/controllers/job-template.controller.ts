@@ -1613,20 +1613,12 @@ export async function getListHierarchies(request: FastifyRequest, reply: Fastify
   }
 }
 
-
-
-export async function getAllJobTemplate(
-  request: FastifyRequest,
-  reply: FastifyReply
-) {
+export async function getAllJobTemplate(request: FastifyRequest, reply: FastifyReply) {
   const trace_id = generateCustomUUID();
 
   try {
     const { program_id } = request.params as { program_id: string };
     const { labour_category } = request.query as { labour_category?: string };
-
-    console.log("Received program_id:", program_id);
-    console.log("Received labour_category:", labour_category);
 
     const jobTemplates: JobTemplate[] = await jobTemplateModel.findAll({
       attributes: ['id', 'template_name'],
@@ -1634,20 +1626,29 @@ export async function getAllJobTemplate(
         program_id,
         ...(labour_category && { labour_category })
       },
-      raw: true 
+      raw: true
     });
+
+    if (!jobTemplates || jobTemplates.length === 0) {
+      return reply.status(200).send({
+        status_code: 200,
+        message: "No job templates found.",
+        job_templates: [],
+        trace_id,
+      });
+    }
+
     reply.status(200).send({
       status_code: 200,
-      trace_id,
+      message: "Job templates fetched successfully.",
       job_templates: jobTemplates,
+      trace_id,
     });
 
-  } catch (error) {
-    console.error("Error in getAllJobTemplate:", error);
-
+  } catch (error: any) {
     reply.status(500).send({
       status_code: 500,
-      message: "An error occurred while fetching job templates.",
+      message: error.message,
       trace_id,
     });
   }
