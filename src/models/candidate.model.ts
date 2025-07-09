@@ -125,7 +125,7 @@ Candidate.init(
             },
         },
         job_title: {
-            type: DataTypes.STRING,
+            type: DataTypes.UUID,
             allowNull: true,
             references: {
                 model: "job_templates",
