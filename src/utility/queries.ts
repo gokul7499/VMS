@@ -2573,10 +2573,12 @@ export const getPendingUserQuery = `
     (
       invitation.is_all_hierarchy_associate = true
       AND h.program_id = invitation.program_id
+      AND h.is_enabled=true
     )
     OR (
       invitation.is_all_hierarchy_associate = false
       AND JSON_CONTAINS(invitation.associate_hierarchy_ids, JSON_QUOTE(h.id))
+      AND h.is_enabled=true
     )
 ), JSON_ARRAY()) AS associate_hierarchy_ids,
    COALESCE((
@@ -2587,10 +2589,12 @@ export const getPendingUserQuery = `
   WHERE (
     invitation.is_all_work_location_associate = true
     AND wl.program_id = invitation.program_id
+    AND wl.is_enabled=true
   )
   OR (
     invitation.is_all_work_location_associate = false
     AND JSON_CONTAINS(invitation.work_location_ids, JSON_QUOTE(wl.id))
+    AND wl.is_enabled=true
   )
 ), JSON_ARRAY()) AS work_location_ids,
 
@@ -2704,8 +2708,8 @@ FROM ${auth_db}.invitation
 JOIN ${auth_db}.user_group_mapping ON user_group_mapping.id = invitation.user_mapping_id
 LEFT JOIN tenant ON invitation.tenant_id = tenant.id
 LEFT JOIN countries ON invitation.country_id = countries.id
-LEFT JOIN hierarchies ON invitation.default_hierarchy_id = hierarchies.id
-LEFT JOIN work_locations ON invitation.default_work_location_id = work_locations.id
+LEFT JOIN hierarchies ON invitation.default_hierarchy_id = hierarchies.id AND hierarchies.is_enabled=true
+LEFT JOIN work_locations ON invitation.default_work_location_id = work_locations.id AND work_locations.is_enabled=true
 LEFT JOIN ${auth_db}.user ON invitation.supervisor = user.user_id
 LEFT JOIN ${auth_db}.roles ur ON invitation.role_id = ur.id
 
