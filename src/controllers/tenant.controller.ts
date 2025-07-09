@@ -19,7 +19,7 @@ export async function getTenants(
 ) {
     const { is_enabled } = request.query;
     const traceId = generateCustomUUID();
-    
+
     try {
         const whereClause: any = { is_deleted: false };
 
@@ -96,27 +96,27 @@ export async function getTenantById(request: FastifyRequest, reply: FastifyReply
             }
             reply.status(200).send({
                 status_code: 200,
-                message:" Tenant found",
+                message: " Tenant found",
                 tenant_data: tenantData,
                 trace_id: traceId,
             });
         } else {
-            reply.status(200).send({status_code:200, message: "Tenant not found", tenant: [] , trace_id:traceId});
+            reply.status(200).send({ status_code: 200, message: "Tenant not found", tenant: [], trace_id: traceId });
         }
     } catch (error) {
         console.error(error);
-        reply.status(500).send({status_code:500, message: "Internal Server Error", trace_id:traceId});
+        reply.status(500).send({ status_code: 500, message: "Internal Server Error", trace_id: traceId });
     }
 }
 
 export async function createTenant(request: FastifyRequest, reply: FastifyReply) {
     const data = request.body as TenantData;
     const traceId = generateCustomUUID();
-    const user=request?.user;
+    const user = request?.user;
 
     logger(
         {
-            trace_id:traceId,
+            trace_id: traceId,
             actor: {
                 user_name: user?.preferred_username,
                 user_id: user?.sub,
@@ -135,14 +135,14 @@ export async function createTenant(request: FastifyRequest, reply: FastifyReply)
 
     try {
         const existingTenant = await Tenant.findOne({
-            where: { name: data.name }
+            where: { display_name: data.name }
         });
 
         if (existingTenant) {
             return reply.status(400).send({
                 status_code: 400,
                 message: 'A tenant with the same name already exists',
-                trace_id:traceId,
+                trace_id: traceId,
             });
         }
 
@@ -155,11 +155,11 @@ export async function createTenant(request: FastifyRequest, reply: FastifyReply)
             status_code: 201,
             message: 'Tenant created successfully',
             id: newItem?.id,
-            trace_id:traceId,
+            trace_id: traceId,
         });
         logger(
             {
-                trace_id:traceId,
+                trace_id: traceId,
                 actor: {
                     user_name: user?.preferred_username,
                     user_id: user?.sub,
@@ -177,7 +177,7 @@ export async function createTenant(request: FastifyRequest, reply: FastifyReply)
         );
     } catch (error: any) {
         logger({
-            trace_id:traceId,
+            trace_id: traceId,
             actor: {
                 user_name: user?.preferred_username,
                 user_id: user?.sub,
@@ -193,17 +193,17 @@ export async function createTenant(request: FastifyRequest, reply: FastifyReply)
         })
         if (error.name === "SequelizeUniqueConstraintError") {
             const field = error.errors[0].path;
-            return reply.status(400).send({status_code:400, error: `${field} already in use!`,trace_id:traceId });
+            return reply.status(400).send({ status_code: 400, error: `${field} already in use!`, trace_id: traceId });
         }
         console.error(error);
-        return reply.status(500).send({status_code:500, message: "Failed To Create Tenant", error ,trace_id:traceId});
+        return reply.status(500).send({ status_code: 500, message: "Failed To Create Tenant", error, trace_id: traceId });
     }
 }
 
 export async function createTenantAndUser(request: FastifyRequest, reply: FastifyReply) {
     const { tenant } = request.body as { tenant: TenantData; user: UserInterface; user_group_mapping: UserMappingAttributes };
     const traceId = generateCustomUUID();
-    const user=request?.user;
+    const user = request?.user;
     try {
         const processedData = {
             ...tenant,
@@ -234,7 +234,7 @@ export async function createTenantAndUser(request: FastifyRequest, reply: Fastif
     } catch (error: any) {
         if (error.name === "SequelizeUniqueConstraintError") {
             const field = error.errors[0]?.path || 'Unknown field';
-            return reply.status(400).send({status_code:400, message: `${field} already in use!`, traceId });
+            return reply.status(400).send({ status_code: 400, message: `${field} already in use!`, traceId });
         }
         return reply.status(500).send({
             status_code: 500,
@@ -249,22 +249,22 @@ export async function updateTenant(request: FastifyRequest, reply: FastifyReply)
     const { id } = request.params as { id: string };
     const TenantData = request.body as TenantData;
     const traceId = generateCustomUUID();
-    
+
     try {
         const tenant: Tenant | null = await Tenant.findByPk(id);
-        const authHeader = request.headers.authorization; 
+        const authHeader = request.headers.authorization;
         if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
         }
         const token = authHeader.split(' ')[1];
         let user: any = await decodeToken(token);
         if (!user) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
         }
         const userId = user?.sub;
         if (tenant) {
-            await tenant.update({...TenantData, updated_by:userId});
-            
+            await tenant.update({ ...TenantData, updated_by: userId });
+
             if (TenantData.display_name) {
                 await ProgramVendor.update(
                     { display_name: TenantData.display_name },
@@ -278,11 +278,11 @@ export async function updateTenant(request: FastifyRequest, reply: FastifyReply)
                 trace_id: traceId,
             });
         } else {
-            reply.status(200).send({status_code:200, message: "Tenant not found", tenants: [] ,trace_id:traceId});
+            reply.status(200).send({ status_code: 200, message: "Tenant not found", tenants: [], trace_id: traceId });
         }
     } catch (error) {
         console.error(error);
-        reply.status(500).send({status_code:500, message: "Internal Server Error",trace_id:traceId });
+        reply.status(500).send({ status_code: 500, message: "Internal Server Error", trace_id: traceId });
     }
 }
 
@@ -293,10 +293,10 @@ export async function deleteTenant(request: FastifyRequest, reply: FastifyReply)
     try {
 
         const tenant = await Tenant.findByPk(id);
-        const user=request?.user;
+        const user = request?.user;
         const userId = user?.sub;
         if (tenant) {
-           
+
             await tenant.destroy();
             reply.status(200).send({
                 status_code: 200,
@@ -305,17 +305,17 @@ export async function deleteTenant(request: FastifyRequest, reply: FastifyReply)
                 trace_id: traceId,
             });
         } else {
-            reply.status(200).send({status_code:200, message: "Tenant not found", tenants: [] ,trace_id:traceId});
+            reply.status(200).send({ status_code: 200, message: "Tenant not found", tenants: [], trace_id: traceId });
         }
     } catch (error) {
         console.error(error);
-        reply.status(500).send({status_code:500, message: "Internal Server Error" ,trace_id:traceId});
+        reply.status(500).send({ status_code: 500, message: "Internal Server Error", trace_id: traceId });
     }
 }
 
 export async function searchTenantsWithProgramCount(request: FastifyRequest, reply: FastifyReply) {
     const searchFields = ["id", "name", "display_name", "contacts", "created_on", "is_enabled", "type", "vendor_code"];
-    const responseFields = ["id", "name", "display_name", "contacts", "created_on", "is_enabled", "type", "logo","vendor_code"];
+    const responseFields = ["id", "name", "display_name", "contacts", "created_on", "is_enabled", "type", "logo", "vendor_code"];
     const traceId = generateCustomUUID();
     try {
         const query = request.query as Record<string, string>;
@@ -385,7 +385,7 @@ export async function searchTenantsWithProgramCount(request: FastifyRequest, rep
 
         const { rows: results, count } = await Tenant.findAndCountAll({
             where: { ...searchConditions, is_deleted: false },
-            limit: limit??undefined,
+            limit: limit ?? undefined,
             offset: offset,
             attributes: attributes,
             order: [[finalSortField, finalSortDirection]],
@@ -393,13 +393,13 @@ export async function searchTenantsWithProgramCount(request: FastifyRequest, rep
 
         return reply.status(200).send({
             status_code: 200,
-            message:" Tenants retrieved successfully",
+            message: " Tenants retrieved successfully",
             total_records: count,
             tenants: results,
-            trace_id:traceId
+            trace_id: traceId
         });
-    } catch (error:any) {
-        return reply.status(500).send({status_code:500, message: "Internal Server Error" ,error:error.message,trace_id:traceId});
+    } catch (error: any) {
+        return reply.status(500).send({ status_code: 500, message: "Internal Server Error", error: error.message, trace_id: traceId });
     }
 }
 
