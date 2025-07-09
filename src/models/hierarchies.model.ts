@@ -11,6 +11,7 @@ class Hierarchies extends Model {
   rate_model!: any;
   program_id!: string;
   code: any;
+  managed_by!: string;
 }
 Hierarchies.init(
   {
