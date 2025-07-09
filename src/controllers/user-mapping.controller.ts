@@ -339,14 +339,13 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                      SELECT JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name))
                      FROM hierarchies h
                     WHERE h.program_id = u.program_id
-                    AND h.is_enabled=true
+                     AND h.is_enabled=true
                     )
                    ELSE (
                     SELECT JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name))
                     FROM hierarchies h
                     WHERE JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(h.id))
                     AND h.is_enabled=true
-                    )
                    )
                  END
                 ),
@@ -368,7 +367,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                      SELECT JSON_ARRAYAGG(JSON_OBJECT('id', wl.id, 'name', wl.name))
                      FROM work_locations wl
                      WHERE JSON_CONTAINS(u.work_location_ids, JSON_QUOTE(wl.id))
-                     AND wl.is_enabled=true
+                        AND wl.is_enabled=true
                      )
                     END
                     )
