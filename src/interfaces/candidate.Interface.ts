@@ -20,9 +20,9 @@ export default interface CandidateInterface {
     qualifications: JSON;
     job_level: string;
     npi: number;
-    job_category_id: string;
+    job_category: string;
     worker_type_id: string;
-    title: string;
+    job_title: string;
     custom_fields?: JSON;
     preferences: JSON;
     is_active: boolean;
