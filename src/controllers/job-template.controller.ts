@@ -40,6 +40,7 @@ import IndustriesModel from "../models/labour-category.model";
 import Checklist from "../models/checklist.model";
 import GlobalRepository from "../repositories/global.repository";
 import { getCustomsField } from "../utility/get-custom-field";
+import { getMasterData } from "../utility/get-master-data";
 
 interface Metadata {
   program_id: string;
@@ -219,20 +220,28 @@ export async function getJobTemplateById(request: FastifyRequest, reply: Fastify
 
     const transformedJobTemplate = transformBooleanFields(jobTemplate);
     const [customFieldsResult] = await sequelize.query(
-      getCustomsField(transformedJobTemplate.id, 'job_template_custom_field', 'job_temp_id','custom_field_id'),
+      getCustomsField(transformedJobTemplate.id, 'job_template_custom_field', 'job_temp_id', 'custom_field_id'),
       {
         replacements: { id: transformedJobTemplate.id },
         type: QueryTypes.SELECT,
       }
-    )as any;
+    ) as any;
 
+    const [masterDataResult] = await sequelize.query(
+      getMasterData('job_template_master_data', 'job_temp_id', 'foundation_data_type_id', 'foundation_data_id', true),
+      {
+        replacements: { id: transformedJobTemplate.id },
+        type: QueryTypes.SELECT,
+      }
+    ) as any;
 
     reply.status(200).send({
       statusCode: 200,
       message: "Job template fetched successfully",
-      job_template:{
+      job_template: {
         ...transformedJobTemplate,
-        job_template_custom_fields: customFieldsResult,
+        job_template_custom_fields: customFieldsResult.custom_fields,
+        job_master_data: masterDataResult.master_data
       },
       trace_id: traceId,
     });
