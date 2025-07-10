@@ -394,6 +394,20 @@ export const updateSowTemplate = async (request: FastifyRequest, reply: FastifyR
       { transaction }
     );
     if (Array.isArray(sowTemplate.custom_fields)) {
+         const incomingCustomFieldIds = sowTemplate.custom_fields
+    .filter(f => f.id) 
+    .map(f => f.id);
+
+  
+  await SowTemplateCustomField.destroy({
+    where: {
+      sow_temp_id: id,
+      custom_field_id: {
+        [Op.notIn]: incomingCustomFieldIds,
+      },
+    },
+    transaction,
+  });
       for (const field of sowTemplate.custom_fields) {
         const { id: custom_field_id, value } = field;
         if (!custom_field_id) continue;
