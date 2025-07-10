@@ -33,20 +33,20 @@ class JobTempletRepository {
       program_id,
     };
 
-     if (mspHierarchyIds && mspHierarchyIds.length > 0) {
-    query += ` AND (ji.is_all_hierarchy_associated = 1 OR ji.id IN (
+    if (mspHierarchyIds && mspHierarchyIds.length > 0) {
+      query += ` AND (ji.is_all_hierarchy_associated = 1 OR ji.id IN (
       SELECT jth.job_temp_id
       FROM job_template_hierarchies AS jth
       WHERE jth.hierarchy IN (:mspHierarchyIds)
       AND jth.is_deleted = false
     ))`;
-    replacements.mspHierarchyIds = mspHierarchyIds;
-  }
+      replacements.mspHierarchyIds = mspHierarchyIds;
+    }
 
-     if (filter_by_hierarchy && hierarchy_ids && hierarchy_ids.length > 0) {
-    query += ` AND (ji.is_all_hierarchy_associated = 1 OR jc.hierarchy IN (:hierarchy_ids))`;
-    replacements.hierarchy_ids = hierarchy_ids;
-  }
+    if (filter_by_hierarchy && hierarchy_ids && hierarchy_ids.length > 0) {
+      query += ` AND (ji.is_all_hierarchy_associated = 1 OR jc.hierarchy IN (:hierarchy_ids))`;
+      replacements.hierarchy_ids = hierarchy_ids;
+    }
 
     query += `
     GROUP BY ji.id, ji.template_name, ji.job_id, ji.program_id, ji.created_on,ji.is_all_hierarchy_associated
@@ -82,17 +82,17 @@ class JobTempletRepository {
     is_shift_rate?: boolean,
     mspHierarchyIds?: string[]
   ) {
-   const hierarchyCondition = hierarchyIdsArray.length > 0
-  ? `AND (job_templates.is_all_hierarchy_associated= 1 OR job_templates.id IN (
+    const hierarchyCondition = hierarchyIdsArray.length > 0
+      ? `AND (job_templates.is_all_hierarchy_associated= 1 OR job_templates.id IN (
       SELECT job_temp_id
       FROM job_template_hierarchies
       WHERE hierarchy IN (${hierarchyIdsArray.map(() => '?').join(',')})
       GROUP BY job_temp_id
       HAVING COUNT(DISTINCT hierarchy) = ?
     ))`
-  : "";
+      : "";
 
-      const mspHierarchyCondition = mspHierarchyIds && mspHierarchyIds.length > 0
+    const mspHierarchyCondition = mspHierarchyIds && mspHierarchyIds.length > 0
       ? `AND (job_templates.is_all_hierarchy_associated = 1 OR job_templates.id IN (
           SELECT job_temp_id
           FROM job_template_hierarchies
@@ -141,11 +141,11 @@ class JobTempletRepository {
 
     const replacements: (string | number)[] = [program_id];
 
-if (hierarchyIdsArray.length > 0) {
-  replacements.push(...hierarchyIdsArray, hierarchyIdsArray.length);
-}
+    if (hierarchyIdsArray.length > 0) {
+      replacements.push(...hierarchyIdsArray, hierarchyIdsArray.length);
+    }
 
- if (mspHierarchyIds && mspHierarchyIds.length > 0) {
+    if (mspHierarchyIds && mspHierarchyIds.length > 0) {
       replacements.push(...mspHierarchyIds);
     }
 
@@ -182,15 +182,15 @@ if (hierarchyIdsArray.length > 0) {
     is_shift_rate?: boolean,
     mspHierarchyIds?: string[]
   ) {
-   const hierarchyCondition = hierarchyIdsArray.length > 0
-  ? `AND (job_templates.is_all_hierarchy_associated = 1 OR job_templates.id IN (
+    const hierarchyCondition = hierarchyIdsArray.length > 0
+      ? `AND (job_templates.is_all_hierarchy_associated = 1 OR job_templates.id IN (
       SELECT job_temp_id
       FROM job_template_hierarchies
       WHERE hierarchy IN (${hierarchyIdsArray.map(() => '?').join(',')})
       GROUP BY job_temp_id
       HAVING COUNT(DISTINCT hierarchy) = ?
     ))`
-  : "";
+      : "";
 
     const mspHierarchyCondition = mspHierarchyIds && mspHierarchyIds.length > 0
       ? `AND (job_templates.is_all_hierarchy_associated = 1 OR job_templates.id IN (
@@ -282,17 +282,17 @@ if (hierarchyIdsArray.length > 0) {
     isHierarchyIdsArray?: string[],
     mspHierarchyIds?: string[]
   ) {
-  const hierarchyCondition = hierarchyIdsArray.length > 0
-? `(job_templates.is_all_hierarchy_associated = 1 OR job_templates.id IN (
+    const hierarchyCondition = hierarchyIdsArray.length > 0
+      ? `(job_templates.is_all_hierarchy_associated = 1 OR job_templates.id IN (
     SELECT job_temp_id
     FROM job_template_hierarchies
     WHERE hierarchy IN (${hierarchyIdsArray.map(() => '?').join(',')})
     GROUP BY job_temp_id
     HAVING COUNT(DISTINCT hierarchy) = ?
   ))`
-: "";
+      : "";
 
- const mspHierarchyCondition = mspHierarchyIds && mspHierarchyIds.length > 0
+    const mspHierarchyCondition = mspHierarchyIds && mspHierarchyIds.length > 0
       ? `(job_templates.is_all_hierarchy_associated = 1 OR job_templates.id IN (
           SELECT job_temp_id
           FROM job_template_hierarchies
@@ -301,7 +301,7 @@ if (hierarchyIdsArray.length > 0) {
       : "";
 
     const isHierarchyCondition = isHierarchyIdsArray && isHierarchyIdsArray.length > 0
-  ? `(job_templates.is_all_hierarchy_associated = 1 OR job_templates.id IN (
+      ? `(job_templates.is_all_hierarchy_associated = 1 OR job_templates.id IN (
       SELECT job_temp_id
       FROM job_template_hierarchies
       WHERE hierarchy IN (${isHierarchyIdsArray.map(() => '?').join(',')})
@@ -313,7 +313,7 @@ if (hierarchyIdsArray.length > 0) {
         WHERE jth_sub.job_temp_id = job_template_hierarchies.job_temp_id
       )
     ))`
-  : "";
+      : "";
 
     const conditions = [
       hierarchyCondition,
@@ -329,7 +329,7 @@ if (hierarchyIdsArray.length > 0) {
     ].filter(Boolean).join(' AND ');
 
     const pagination = (limit && offset) ? 'LIMIT ? OFFSET ?' : '';
-    
+
 
     const query = `
       SELECT
@@ -562,28 +562,6 @@ END AS hierarchy,
                 'default_timezone', primary_hierarchy.default_timezone
             ) AS primary_hierarchy,
             COALESCE((
-              SELECT JSON_ARRAYAGG(
-              JSON_OBJECT(
-            'custom_field_id', jtc.custom_field_id,
-            'value', jtc.value,
-            'label', cf.label,
-            'manager_name',
-                      CASE
-                        WHEN user.user_id IS NOT NULL
-                      THEN CONCAT(user.first_name, ' ', user.last_name)
-                      ELSE NULL
-                      END,
-            'field_type', cf.field_type
-            )
-          )
-        FROM job_template_custom_field jtc
-        LEFT JOIN custom_fields cf ON jtc.custom_field_id = cf.id
-        LEFT JOIN user ON TRIM(BOTH '"' FROM jtc.value) = user.user_id AND jtc.program_id=user.program_id
-        WHERE jtc.job_temp_id = job_templates.id
-        AND cf.is_enabled = true
-        AND cf.is_deleted = false
-        ), JSON_ARRAY()) AS job_template_custom_fields,
-            COALESCE((
                 SELECT JSON_ARRAYAGG(
                     JSON_OBJECT(
                         'qualification_type_id', qualification_types.id,
@@ -635,38 +613,7 @@ END AS hierarchy,
                 FROM job_template_rate_type
                 JOIN rate_type ON job_template_rate_type.rate_type_id = rate_type.id
                 WHERE job_template_rate_type.job_temp_id = job_templates.id
-            ), JSON_ARRAY()) AS job_template_rate_types,
-            COALESCE((
-              SELECT JSON_ARRAYAGG(
-              JSON_OBJECT(
-                'id', job_template_master_data.id,
-                'foundation_data_type_id', job_template_master_data.foundation_data_type_id,
-                'foundation_data_type_name', master_data_type.name,
-                'foundation_data_id', COALESCE((
-                SELECT JSON_ARRAYAGG(
-                    JSON_OBJECT(
-                        'id', md.id,
-                        'name', md.name
-                    )
-                )
-                FROM JSON_TABLE(
-                    job_template_master_data.foundation_data_id,
-                    '$[*]' COLUMNS (
-                        id CHAR(36) PATH '$'
-                    )
-                ) AS jt
-                JOIN master_data md ON md.id = jt.id
-                WHERE md.is_enabled = true
-            ), JSON_ARRAY()),
-            'is_read_only', job_template_master_data.is_read_only
-          )
-        )
-        FROM job_template_master_data
-        LEFT JOIN master_data_type 
-        ON job_template_master_data.foundation_data_type_id = master_data_type.id
-        AND master_data_type.is_enabled = true
-        WHERE job_template_master_data.job_temp_id = job_templates.id
-        ), JSON_ARRAY()) AS job_master_data
+            ), JSON_ARRAY()) AS job_template_rate_types
         FROM
             job_templates
         LEFT JOIN

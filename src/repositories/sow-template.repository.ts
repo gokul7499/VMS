@@ -74,7 +74,6 @@ export const getSowTemplatesCountQuery = (whereClause: string) => `
     WHERE ${whereClause};
 `;
 
-
 export const getSowTemplateByIdQuery = `
    SELECT 
     t.id,
@@ -97,7 +96,6 @@ export const getSowTemplateByIdQuery = `
     t.updated_by,
     t.created_on,
     t.updated_on,
-
     -- Hierarchy
     COALESCE((
         SELECT JSON_ARRAYAGG(JSON_OBJECT(
@@ -118,84 +116,7 @@ export const getSowTemplateByIdQuery = `
         FROM picklistitems p
         WHERE p.id = t.type
         LIMIT 1
-    ), NULL) AS picklist_items,
-
-   -- Custom Fields
-
-COALESCE((
-  SELECT JSON_ARRAYAGG(
-    JSON_OBJECT(
-      'id', stcf.custom_field_id,
-      'value',
-      CASE
-    
-        WHEN JSON_VALID(stcf.value) AND JSON_TYPE(JSON_EXTRACT(stcf.value, '$')) = 'ARRAY'
-          THEN JSON_EXTRACT(stcf.value, '$')
-
-        WHEN JSON_VALID(stcf.value) AND JSON_TYPE(JSON_EXTRACT(stcf.value, '$')) = 'OBJECT'
-          THEN JSON_EXTRACT(stcf.value, '$')
-
-        WHEN JSON_VALID(stcf.value) AND JSON_TYPE(JSON_EXTRACT(stcf.value, '$')) = 'STRING'
-          THEN JSON_UNQUOTE(JSON_EXTRACT(stcf.value, '$'))
-
-        WHEN JSON_VALID(stcf.value) AND JSON_TYPE(JSON_EXTRACT(stcf.value, '$')) IN ('INTEGER', 'DECIMAL')
-          THEN JSON_EXTRACT(stcf.value, '$')
-
-        ELSE stcf.value
-      END,
-      'label', COALESCE(cf.label, ''),
-      'field_type', COALESCE(cf.field_type, '')
-    )
-  )
-  FROM sow_template_custom_field stcf
-  LEFT JOIN custom_fields cf ON stcf.custom_field_id = cf.id
-  WHERE stcf.sow_temp_id = t.id
-    AND cf.is_enabled = TRUE
-    AND cf.is_deleted = FALSE
-), JSON_ARRAY()) AS custom_fields,
-
-
-
-
--- Master Data
-COALESCE((
-  SELECT JSON_ARRAYAGG(
-    JSON_OBJECT(
-      'master_data_type', mdt.id,
-      'master_data_type_name', mdt.name,
-      'master_data', (
-        SELECT JSON_ARRAYAGG(
-          JSON_OBJECT(
-            'id', sub.md_id,
-            'name', sub.md_name,
-            'seq_no', sub.seq_no
-          )
-        )
-        FROM (
-    SELECT DISTINCT
-      md.id AS md_id,
-      md.name AS md_name,
-      stm.seq_no
-    FROM sow_template_master_data stm
-    LEFT JOIN master_data md 
-      ON JSON_UNQUOTE(JSON_EXTRACT(stm.master_data, '$[0]')) = md.id
-    WHERE stm.master_data_type = mdt.id
-      AND stm.sow_temp_id = t.id
-      AND md.id IS NOT NULL
-  ) AS sub
-      )
-    )
-  )
-  FROM master_data_type mdt
-  WHERE EXISTS (
-    SELECT 1
-    FROM sow_template_master_data stm
-    WHERE stm.master_data_type = mdt.id
-      AND stm.sow_temp_id = t.id
-  )
-), JSON_ARRAY()) AS master_data
-
-
+    ), NULL) AS picklist_items
 FROM sow_templates t
 WHERE t.id = :id AND t.program_id = :program_id AND t.is_deleted = false
 LIMIT 1;
