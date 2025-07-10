@@ -468,6 +468,7 @@ export const updateWorkflowStatus = async (
                                         actor_first_name: userData?.first_name,
                                         actor_last_name: userData?.last_name,
                                         actor_by_avatar: userData?.avatar,
+                                        is_admin_override: is_admin_override,
                                         auto_approved: true,
                                         notes: "Auto-approved: User is inactive"
                                     };
@@ -502,6 +503,7 @@ export const updateWorkflowStatus = async (
                                             actor_first_name: userData?.first_name,
                                             actor_last_name: userData?.last_name,
                                             actor_by_avatar: userData?.avatar,
+                                            is_admin_override: is_admin_override,
                                             by: `${userData?.first_name} ${userData?.last_name}`,
                                             notes: notes || "",
                                         };
@@ -539,6 +541,7 @@ export const updateWorkflowStatus = async (
                                             actor_first_name: userData?.first_name,
                                             actor_last_name: userData?.last_name,
                                             actor_by_avatar: userData?.avatar,
+                                            is_admin_override: is_admin_override,
                                             notes: notes || "",
                                         };
                                     }
@@ -566,6 +569,7 @@ export const updateWorkflowStatus = async (
                                                 actor_first_name: userData?.first_name,
                                                 actor_last_name: userData?.last_name,
                                                 actor_by_avatar: userData?.avatar,
+                                                is_admin_override:is_admin_override,
                                                 updated_on: Date.now(),
                                                 notes: notes || "",
                                             };
@@ -594,6 +598,7 @@ export const updateWorkflowStatus = async (
                                                     actor_first_name: userData?.first_name,
                                                     actor_last_name: userData?.last_name,
                                                     actor_by_avatar: userData?.avatar,
+                                                    is_admin_override: is_admin_override,
                                                     updated_on: Date.now(),
                                                     notes: notes || "",
                                                 };
@@ -620,6 +625,7 @@ export const updateWorkflowStatus = async (
                                         actor_last_name: userData?.last_name,
                                         actor_by_avatar: userData?.avatar,
                                         updated_on: Date.now(),
+                                        is_admin_override: is_admin_override,
                                         notes: notes || "",
                                     };
                                 }
@@ -690,11 +696,11 @@ export const updateWorkflowStatus = async (
             for (let i = 0; i < levels.length; i++) {
                 const level = levels[i];
                 const isValidLevel = level.recipient_types &&
-    level?.recipient_types?.length > 0 && 
-    level?.recipient_types?.every((recipient: any) => {
-        return recipient.meta_data !== null && recipient.meta_data !== undefined && 
-            Object.values(recipient.meta_data).every(value => value !== null);
-    });
+                    level?.recipient_types?.length > 0 &&
+                    level?.recipient_types?.every((recipient: any) => {
+                        return recipient.meta_data !== null && recipient.meta_data !== undefined &&
+                            Object.values(recipient.meta_data).every(value => value !== null);
+                    });
 
 
                 if (!isValidLevel) {
