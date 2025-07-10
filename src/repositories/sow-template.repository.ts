@@ -166,16 +166,23 @@ COALESCE((
       'master_data', (
         SELECT JSON_ARRAYAGG(
           JSON_OBJECT(
-            'id', md.id,
-            'name', md.name,
-            'seq_no', stm.seq_no
+            'id', sub.md_id,
+            'name', sub.md_name,
+            'seq_no', sub.seq_no
           )
         )
-        FROM sow_template_master_data stm
-        LEFT JOIN master_data md 
-          ON JSON_UNQUOTE(JSON_EXTRACT(stm.master_data, '$[0]')) = md.id
-        WHERE stm.master_data_type = mdt.id
-          AND stm.sow_temp_id = t.id
+        FROM (
+    SELECT DISTINCT
+      md.id AS md_id,
+      md.name AS md_name,
+      stm.seq_no
+    FROM sow_template_master_data stm
+    LEFT JOIN master_data md 
+      ON JSON_UNQUOTE(JSON_EXTRACT(stm.master_data, '$[0]')) = md.id
+    WHERE stm.master_data_type = mdt.id
+      AND stm.sow_temp_id = t.id
+      AND md.id IS NOT NULL
+  ) AS sub
       )
     )
   )

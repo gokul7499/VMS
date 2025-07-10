@@ -164,7 +164,7 @@ export async function getAllCandidate(
             middle_name,
             last_name,
             name,
-            title,
+            job_title,
             is_active,
             worker_type_id,
             availability_date,
@@ -200,7 +200,7 @@ export async function getAllCandidate(
         if (name) whereClause.name = { [Op.like]: `%${name}%` };
         if (middle_name) whereClause.middle_name = { [Op.like]: `%${middle_name}%` };
         if (last_name) whereClause.last_name = { [Op.like]: `%${last_name}%` };
-        if (title) whereClause.title = { [Op.like]: `%${title}%` };
+        if (job_title) whereClause.job_title = { [Op.like]: `%${job_title}%` };
         if (is_active !== undefined) whereClause.is_active = is_active === 'true';
         if (worker_type_id) whereClause.worker_type_id = worker_type_id;
         if (availability_date) whereClause["preferences.availability_date"] = availability_date;
@@ -228,7 +228,7 @@ export async function getAllCandidate(
             where: whereClause,
             attributes: [
                 'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email', 'tenant_id', 'vendor_id', "contacts",
-                'candidate_id', 'preferences', 'worker_type_id', 'title', 'birth_date', 'updated_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
+                'candidate_id', 'preferences', 'worker_type_id', 'job_title', 'birth_date', 'updated_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
             ],
             limit: limitNum,
             offset,
@@ -257,7 +257,7 @@ export async function getAllCandidate(
                 candidate_id: cand.candidate_id,
                 preferences: cand.preferences,
                 worker_type_id: cand.worker_type_id,
-                title: cand.title,
+                job_title: cand.job_title,
                 email: cand.email,
                 vendor_id: cand.vendor_id,
                 vendor: vendor ? {
@@ -315,7 +315,7 @@ export async function getCandidateByIdAndProgramId(
                 is_deleted: false
             },
             attributes: {
-                exclude: ['country_id','job_category_id']
+                exclude: ['country_id']
             },
             include: [
                 {
@@ -350,14 +350,17 @@ export async function getCandidateByIdAndProgramId(
         console.log(candidateData, "candidateData")
 
         if (candidateData.labour_category) {
-            candidateData.job_category_id = {
+            candidateData.job_category = {
                 id: candidateData.labour_category.id,
                 name: candidateData?.labour_category?.name
             };
             delete candidateData.labour_category;
         }
          if (candidateData.job_templates) {
-            candidateData.title = candidateData?.job_templates?.template_name
+            candidateData.job_title = {
+                id: candidateData?.job_templates?.id,
+                name: candidateData?.job_templates?.template_name
+            };
             delete candidateData.job_templates;
         }
 
@@ -591,7 +594,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         middle_name,
         last_name,
         name,
-        title,
+        job_title,
         is_active,
         worker_type_id,
         availability_date,
@@ -638,7 +641,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
             first_name: first_name ? `%${first_name}%` : undefined,
             middle_name: middle_name ? `%${middle_name}%` : undefined,
             last_name: last_name ? `%${last_name}%` : undefined,
-            title: title ? `%${title}%` : undefined,
+            job_title: job_title ? `%${job_title}%` : undefined,
             is_active: is_active !== undefined ? is_active === 'true' : undefined,
             worker_type_id: workerTypeIds,
             availability_date: availability_date ? parseInt(availability_date, 10) : undefined,
@@ -713,7 +716,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     if (name) whereClause.name = { [Op.like]: `%${name}%` };
     if (middle_name) whereClause.middle_name = { [Op.like]: `%${middle_name}%` };
     if (last_name) whereClause.last_name = { [Op.like]: `%${last_name}%` };
-    if (title) whereClause.title = { [Op.like]: `%${title}%` };
+    if (job_title) whereClause.job_title = { [Op.like]: `%${job_title}%` };
     if (is_active !== undefined) whereClause.is_active = is_active === 'true';
     if (worker_type_id) whereClause.worker_type_id = { [Op.in]: workerTypeIds };
     if (availability_date) whereClause["preferences.availability_date"] = availability_date;
@@ -751,7 +754,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
             where: whereClause,
             attributes: [
                 'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email', 'tenant_id', "contacts",
-                'candidate_id', 'preferences', 'vendor_id', 'worker_type_id', 'title', 'birth_date', 'updated_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire", "is_pre_identified",
+                'candidate_id', 'preferences', 'vendor_id', 'worker_type_id', 'job_title', 'birth_date', 'updated_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire", "is_pre_identified",
             ],
             limit: limitNum,
             offset,
@@ -781,7 +784,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
                 candidate_id: cand.candidate_id,
                 preferences: cand.preferences,
                 worker_type_id: cand.worker_type_id,
-                title: cand.title,
+                job_title: cand.job_title,
                 email: cand.email,
                 vendor: vendor ? {
                     id: vendor.id,
