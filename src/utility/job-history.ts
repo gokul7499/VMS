@@ -47,3 +47,27 @@ export const createJobHistory = async (
 };
 
 
+export async function getUpdatedJobStatus(job_id: string, program_id: string, token: string): Promise<string | null> {
+    try {
+        const apiUrl = `${sourcing_url}/v1/api/program/${program_id}/job/${job_id}`;
+        
+        const response = await axios.get(apiUrl, {
+            headers: {
+                'Content-Type': 'application/json',
+                authorization: `Bearer ${token}`,
+            },
+        });
+
+        const jobStatus = response?.data?.job?.status;
+
+        if (!jobStatus) {
+            console.warn(`Job status not found for job_id: ${job_id}`);
+            return null;
+        }
+
+        return jobStatus;
+    } catch (error) {
+        console.error('Error fetching job status:', error);
+        return null;
+    }
+}

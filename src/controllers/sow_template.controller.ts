@@ -361,14 +361,71 @@ export const updateSowTemplate = async (request: FastifyRequest, reply: FastifyR
         const sowTemplate = request.body as SowTemplate;
         const userId = request.headers['user_id'];
 
-        const existingTemplate = await SowTemplateModel.findOne({
-            where: {
-                id,
-                program_id,
-                is_deleted: false,
-                latest: true,
-            },
-            transaction,
+    const existingTemplate = await SowTemplateModel.findOne({
+      where: {
+        id,
+        program_id,
+        is_deleted: false,
+        latest: true,
+      },
+      transaction,
+    });
+
+    if (!existingTemplate) {
+      await transaction.rollback();
+      return reply.status(404).send({
+        status_code: 404,
+        message: 'SOW Template not found.',
+        trace_id: traceId,
+      });
+    }
+    const {
+      id: _,
+      created_by,
+      created_on,
+      ...updatableFields
+    } = sowTemplate;
+    await existingTemplate.update(
+      {
+        ...updatableFields,
+        updated_by: userId,
+        updated_on: Date.now(),
+      },
+      { transaction }
+    );
+    if (Array.isArray(sowTemplate.custom_fields)) {
+         const incomingCustomFieldIds = sowTemplate.custom_fields
+    .filter(f => f.id) 
+    .map(f => f.id);
+
+  
+  await SowTemplateCustomField.destroy({
+    where: {
+      sow_temp_id: id,
+      custom_field_id: {
+        [Op.notIn]: incomingCustomFieldIds,
+      },
+    },
+    transaction,
+  });
+      for (const field of sowTemplate.custom_fields) {
+        const { id: custom_field_id, value } = field;
+        if (!custom_field_id) continue;
+         const [record, created] = await SowTemplateCustomField.findOrCreate({
+          where: {
+            sow_temp_id: id,
+            custom_field_id,
+          },
+          defaults: {
+            value,
+            sow_temp_id: id,
+            custom_field_id,
+            created_by: userId,
+            updated_by: userId,
+            created_on: Date.now(),
+            updated_on: Date.now(),
+          },
+          transaction,
         });
 
         if (!existingTemplate) {

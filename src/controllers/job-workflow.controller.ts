@@ -19,7 +19,7 @@ import { databaseConfig } from '../config/db';
 import { NotificationEventCode } from '../utility/notification-event-code';
 import WorkflowTriggeredLevel from '../models/workflow-triggering-level-model';
 import WorkflowTriggeredRecipientType from '../models/workflow-triggered-recipient-type.model';
-import { createJobHistory } from '../utility/job-history';
+import { createJobHistory, getUpdatedJobStatus } from '../utility/job-history';
 
 const AUTH_BASE_URL = databaseConfig.config.auth_url;
 let SOURCE_BASE_URL = databaseConfig.config.sourcing_url
@@ -468,6 +468,7 @@ export const updateWorkflowStatus = async (
                                         actor_first_name: userData?.first_name,
                                         actor_last_name: userData?.last_name,
                                         actor_by_avatar: userData?.avatar,
+                                        is_admin_override: is_admin_override,
                                         auto_approved: true,
                                         notes: "Auto-approved: User is inactive"
                                     };
@@ -502,6 +503,7 @@ export const updateWorkflowStatus = async (
                                             actor_first_name: userData?.first_name,
                                             actor_last_name: userData?.last_name,
                                             actor_by_avatar: userData?.avatar,
+                                            is_admin_override: is_admin_override,
                                             by: `${userData?.first_name} ${userData?.last_name}`,
                                             notes: notes || "",
                                         };
@@ -539,6 +541,7 @@ export const updateWorkflowStatus = async (
                                             actor_first_name: userData?.first_name,
                                             actor_last_name: userData?.last_name,
                                             actor_by_avatar: userData?.avatar,
+                                            is_admin_override: is_admin_override,
                                             notes: notes || "",
                                         };
                                     }
@@ -566,6 +569,7 @@ export const updateWorkflowStatus = async (
                                                 actor_first_name: userData?.first_name,
                                                 actor_last_name: userData?.last_name,
                                                 actor_by_avatar: userData?.avatar,
+                                                is_admin_override:is_admin_override,
                                                 updated_on: Date.now(),
                                                 notes: notes || "",
                                             };
@@ -594,6 +598,7 @@ export const updateWorkflowStatus = async (
                                                     actor_first_name: userData?.first_name,
                                                     actor_last_name: userData?.last_name,
                                                     actor_by_avatar: userData?.avatar,
+                                                    is_admin_override: is_admin_override,
                                                     updated_on: Date.now(),
                                                     notes: notes || "",
                                                 };
@@ -620,6 +625,7 @@ export const updateWorkflowStatus = async (
                                         actor_last_name: userData?.last_name,
                                         actor_by_avatar: userData?.avatar,
                                         updated_on: Date.now(),
+                                        is_admin_override: is_admin_override,
                                         notes: notes || "",
                                     };
                                 }
@@ -690,11 +696,11 @@ export const updateWorkflowStatus = async (
             for (let i = 0; i < levels.length; i++) {
                 const level = levels[i];
                 const isValidLevel = level.recipient_types &&
-    level?.recipient_types?.length > 0 && 
-    level?.recipient_types?.every((recipient: any) => {
-        return recipient.meta_data !== null && recipient.meta_data !== undefined && 
-            Object.values(recipient.meta_data).every(value => value !== null);
-    });
+                    level?.recipient_types?.length > 0 &&
+                    level?.recipient_types?.every((recipient: any) => {
+                        return recipient.meta_data !== null && recipient.meta_data !== undefined &&
+                            Object.values(recipient.meta_data).every(value => value !== null);
+                    });
 
 
                 if (!isValidLevel) {
@@ -743,16 +749,20 @@ export const updateWorkflowStatus = async (
                 trace_id: traceId,
             });
         }
-              if (job_id) {
+        const newStatus = (job_id && program_id && token)
+            ? await getUpdatedJobStatus(job_id, program_id, token)
+            : null;   
+                  
+              if (job_id && newStatus) {
                try {
                  await createJobHistory(
                    program_id,
                    job_id,
-                   'SOURCING',
+                   newStatus,
                    'Job Status Update',
                    token,
                    userId || '',      
-                   { status: 'SOURCING' }
+                   { status: newStatus }
                  );
                } catch (error) {
                  console.error('Failed to create job history:', error);
@@ -5444,13 +5454,13 @@ async function processProgramRoleUsers(context: any, row: any): Promise<any> {
                 return userData;
             })
         );
-        
         users.push(...chunkResults.filter(Boolean));
     }
     
     if (users.length === 0) return null;
     
-    const input_value = users.map(user => ({
+    const input_value = users.map(user => (
+        {
         id: user.id,
         name: `${user.first_name} ${user.last_name}`.trim(),
         email: user.email,
@@ -5500,6 +5510,8 @@ function addRecipientsToLevel(levelData: any, result: any, row: any, recipientTy
     let recipients = [];
     
     if (Array.isArray(input_value)) {
+        console.log("Processing multiple recipients:", JSON.stringify(input_value, null, 2));
+        
         recipients = input_value.map(user => ({
             name: getRecipientName(user),
             first_name: user.first_name,
@@ -5509,7 +5521,7 @@ function addRecipientsToLevel(levelData: any, result: any, row: any, recipientTy
             actor_last_name: user.actor_last_name,
             actor_by_avatar: user.actor_by_avatar,
             is_admin_override: user.is_admin_override,
-            status: recipient_status,
+            status: user.receipentStatus || recipient_status,
             updated_on: user.updated_on,
             notes: user.notes,
             reason: user.reason,
