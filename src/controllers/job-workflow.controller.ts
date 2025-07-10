@@ -2878,7 +2878,7 @@ function buildWorkflowQuery(workflow_id: string) {
              ${workflowIdCondition}
             AND w.is_updated = true
         ORDER BY
-            l.placement_order ASC;
+            w.created_on DESC;
     `;
 }
 
@@ -4720,7 +4720,7 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
     )
 ORDER BY
     FIELD(w.method_id, ${methodIds.map((id) => `'${id}'`).join(',')}),
-    l.placement_order ASC;`;
+    w.created_on DESC;`;
         console.log('Hitting the query hereee');
         const rows: any[] = await sequelize.query(query, {
             replacements: {
