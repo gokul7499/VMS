@@ -19,7 +19,7 @@ import { databaseConfig } from '../config/db';
 import { NotificationEventCode } from '../utility/notification-event-code';
 import WorkflowTriggeredLevel from '../models/workflow-triggering-level-model';
 import WorkflowTriggeredRecipientType from '../models/workflow-triggered-recipient-type.model';
-import { createJobHistory } from '../utility/job-history';
+import { createJobHistory, getUpdatedJobStatus } from '../utility/job-history';
 
 const AUTH_BASE_URL = databaseConfig.config.auth_url;
 let SOURCE_BASE_URL = databaseConfig.config.sourcing_url
@@ -743,16 +743,20 @@ export const updateWorkflowStatus = async (
                 trace_id: traceId,
             });
         }
-              if (job_id) {
+        const newStatus = (job_id && program_id && token)
+            ? await getUpdatedJobStatus(job_id, program_id, token)
+            : null;   
+                  
+              if (job_id && newStatus) {
                try {
                  await createJobHistory(
                    program_id,
                    job_id,
-                   'SOURCING',
+                   newStatus,
                    'Job Status Update',
                    token,
                    userId || '',      
-                   { status: 'SOURCING' }
+                   { status: newStatus }
                  );
                } catch (error) {
                  console.error('Failed to create job history:', error);
@@ -5444,13 +5448,13 @@ async function processProgramRoleUsers(context: any, row: any): Promise<any> {
                 return userData;
             })
         );
-        
         users.push(...chunkResults.filter(Boolean));
     }
     
     if (users.length === 0) return null;
     
-    const input_value = users.map(user => ({
+    const input_value = users.map(user => (
+        {
         id: user.id,
         name: `${user.first_name} ${user.last_name}`.trim(),
         email: user.email,
@@ -5500,6 +5504,8 @@ function addRecipientsToLevel(levelData: any, result: any, row: any, recipientTy
     let recipients = [];
     
     if (Array.isArray(input_value)) {
+        console.log("Processing multiple recipients:", JSON.stringify(input_value, null, 2));
+        
         recipients = input_value.map(user => ({
             name: getRecipientName(user),
             first_name: user.first_name,
@@ -5509,7 +5515,7 @@ function addRecipientsToLevel(levelData: any, result: any, row: any, recipientTy
             actor_last_name: user.actor_last_name,
             actor_by_avatar: user.actor_by_avatar,
             is_admin_override: user.is_admin_override,
-            status: recipient_status,
+            status: user.receipentStatus || recipient_status,
             updated_on: user.updated_on,
             notes: user.notes,
             reason: user.reason,
