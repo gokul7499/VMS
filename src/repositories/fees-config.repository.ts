@@ -107,7 +107,7 @@ class FeesConfigRepository {
 
     const sql = `
         SELECT 
-          fees.id, fees.title, fees.source_model, fees.vendors, fees.funding_model, fees.labor_category, fees.updated_on,
+          fees.id, fees.title, fees.source_model, fees.vendors, fees.funding_model, fees.labor_category, fees.updated_on, fees.is_enabled,
           (
             SELECT JSON_ARRAYAGG(
               JSON_OBJECT('id', h.id, 'name', h.name)
