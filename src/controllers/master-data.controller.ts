@@ -532,14 +532,16 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
             data: foundationalDataArray,
             trace_id: traceId,
         });
-    } catch (error: any) {
+    }      catch (error: any) {
+        const safeError = error instanceof Error ? error.message : JSON.stringify(error);
         reply.status(500).send({
             status_code: 500,
             message: 'Internal server error',
             trace_id: traceId,
-            error: error.message,
+            error: safeError,
         });
     }
+
 }
 
 export async function bulkCreateMasterData(
