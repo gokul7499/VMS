@@ -2074,6 +2074,7 @@ export const sameRateConfiguration = `
     WHERE rc.program_id = :program_id
     AND rh.hierarchy_id IN (:hierarchies)
     AND rjt.job_template_id IN (:job_templates)
+    AND rc.job_type IN (:job_types)
     `;
 
 export const sameShiftConfiguration = `

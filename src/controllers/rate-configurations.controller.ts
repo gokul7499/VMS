@@ -36,7 +36,8 @@ export const createRateConfigurations = async (
                 replacements: {
                     program_id,
                     hierarchies: rateConfigurationsPayload.hierarchies || [],
-                    job_templates: rateConfigurationsPayload.job_templates || []
+                    job_templates: rateConfigurationsPayload.job_templates || [],
+                    job_types: rateConfigurationsPayload.job_type || [],
                 },
                 type: QueryTypes.SELECT,
                 transaction
@@ -46,7 +47,7 @@ export const createRateConfigurations = async (
                 await transaction.rollback();
                 return reply.status(409).send({
                     status_code: 409,
-                    message: 'Rate configurations with the same hierarchy and job template already exist.',
+                    message: 'Rate configurations with the same hierarchy job template and job type already exist.',
                     trace_id: traceId,
                 });
             }
