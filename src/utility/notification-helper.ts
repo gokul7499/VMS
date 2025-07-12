@@ -381,3 +381,21 @@ export const handleErrorProperly = (error: any, entity: string) => {
     return { status: 500, message: `Unexpected error while fetching ${entity}`, data: null };
 };
 
+
+				 
+export async function formatCurrencyAmount(currencyCode: string, amount: number): Promise<string> {
+    const currencySymbols: Record<string, string> = {
+      AUD: "A$",
+      CAD: "C$",
+      CNY: "¥",
+      EUR: "€",
+      GBP: "£",
+      INR: "₹",
+      JPY: "¥",
+      NZD: "$",
+      USD: "$",
+    };
+    const symbol = currencySymbols[currencyCode] || "";
+    const formattedAmount = Number(amount).toLocaleString("en-US");
+    return `${symbol} ${formattedAmount}`;
+  }
