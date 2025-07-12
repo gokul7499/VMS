@@ -1,4 +1,4 @@
-import { DataTypes, FLOAT, Model } from "sequelize";
+import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
@@ -73,11 +73,11 @@ ExpenseTypeModel.init({
     allowNull: true
   },
   rate_per_unit: {
-    type: FLOAT,
+    type: DataTypes.DECIMAL(10, 2),
     allowNull: true
   },
   max_unit_limit: {
-    type: FLOAT,
+    type: DataTypes.DECIMAL(10, 2),
     allowNull: true
   },
   is_deleted: {
