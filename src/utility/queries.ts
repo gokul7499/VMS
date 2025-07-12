@@ -2067,15 +2067,19 @@ export const workflowAdvanceFilter = (
 };
 
 export const sameRateConfiguration = `
-    SELECT rc.id
-    FROM rate_configurations rc
-    JOIN rate_configuration_hierarchies rh ON rc.id = rh.rate_configuration_id
-    JOIN rate_configuration_job_templates rjt ON rc.id = rjt.rate_configuration_id
-    WHERE rc.program_id = :program_id
+  SELECT rc.id
+  FROM rate_configurations rc
+  JOIN rate_configuration_hierarchies rh ON rc.id = rh.rate_configuration_id
+  JOIN rate_configuration_job_templates rjt ON rc.id = rjt.rate_configuration_id
+  WHERE rc.program_id = :program_id
     AND rh.hierarchy_id IN (:hierarchies)
     AND rjt.job_template_id IN (:job_templates)
-    AND JSON_CONTAIN(rc.job_type, :job_types)
-    `;
+    AND (
+      rc.job_type IS NULL
+      OR JSON_CONTAINS(rc.job_type, JSON_QUOTE(:job_type))
+    )
+`;
+
 
 export const sameShiftConfiguration = `
     SELECT sc.id

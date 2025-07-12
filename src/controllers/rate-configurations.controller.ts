@@ -37,12 +37,11 @@ export const createRateConfigurations = async (
                     program_id,
                     hierarchies: rateConfigurationsPayload.hierarchies || [],
                     job_templates: rateConfigurationsPayload.job_templates || [],
-                    job_types: rateConfigurationsPayload.job_type || [],
+                    job_type: rateConfigurationsPayload.job_type || null,
                 },
                 type: QueryTypes.SELECT,
                 transaction
             });
-
             if (existingConfigurations.length > 0) {
                 await transaction.rollback();
                 return reply.status(409).send({
