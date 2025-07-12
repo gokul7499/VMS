@@ -1250,6 +1250,7 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       is_enabled,
       template_name,
       labour_category,
+      labour_category_ids,
       is_shift_rate,
       primary_hierarchy,
       job_template_id,
@@ -1260,6 +1261,7 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       limit = 10,
     } = request.body as GetJobTemplatesQuery & {
       hierarchy_ids?: string[];
+      labour_category_ids?: string[];
       job_template_id?: any;
       requested_from?: string;
     };
@@ -1329,24 +1331,29 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       replacements.job_template_id = job_template_id;
     }
 
+    if (labour_category_ids && labour_category_ids.length > 0) {
+      dynamicConditions.push(`job_templates.labour_category IN (:labour_category_ids)`);
+      replacements.labour_category_ids = labour_category_ids;
+    }
+
     if (hierarchy_ids && hierarchy_ids.length > 0) {
       dynamicConditions.push(`
-    (job_templates.is_all_hierarchy_associated = 1 OR job_templates.id IN (
-      SELECT job_temp_id
-      FROM job_template_hierarchies
-      WHERE hierarchy IN (:hierarchy_ids)
-      AND is_deleted = false
-    ))
-  `);
+        (job_templates.is_all_hierarchy_associated = 1 OR job_templates.id IN (
+        SELECT job_temp_id
+        FROM job_template_hierarchies
+        WHERE hierarchy IN (:hierarchy_ids)
+        AND is_deleted = false
+      ))
+    `);
       replacements.hierarchy_ids = hierarchy_ids;
     }
+
     if (requested_from && job_template_id < 1) {
       reply.status(200).send({
         status_code: 200,
         trace_id: traceId,
         message: "job templet not found.",
         job_templates: []
-
       })
     }
 
@@ -1383,7 +1390,6 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
     });
   }
 };
-
 
 export async function uploadJobTemplateFile(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
