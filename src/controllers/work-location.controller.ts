@@ -405,7 +405,7 @@ export async function updateWorkLocation(
       });
     }
 
-    if (Array.isArray(currencies) && currencies.length > 0) {
+    if (Array.isArray(currencies)) {
       await WorkLocationCurrency.destroy({
         where: { work_location_id: id },
         transaction,
