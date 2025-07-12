@@ -89,15 +89,13 @@ class FeesConfigRepository {
       replacements.title = `%${filters.title}%`;
     }
 
-   if (filters.updated_on && Array.isArray(filters.updated_on)) {
+    if (filters.updated_on && Array.isArray(filters.updated_on)) {
       const [startDateStr, endDateStr] = filters.updated_on;
-
       if (startDateStr) {
         const startDate = new Date(startDateStr).getTime();
         whereClause.push("fees.updated_on >= :start_date");
         replacements.start_date = startDate;
       }
-
       if (endDateStr) {
         const endDate = new Date(endDateStr).getTime() + (24 * 60 * 60 * 1000) - 1;
         whereClause.push("fees.updated_on <= :end_date");
