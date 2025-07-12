@@ -90,12 +90,14 @@ class FeesConfigRepository {
     }
 
     if (filters.updated_on && Array.isArray(filters.updated_on)) {
-      const [startDate, endDate] = filters.updated_on;
-      if (startDate) {
+      const [startDateStr, endDateStr] = filters.updated_on;
+      if (startDateStr) {
+        const startDate = new Date(startDateStr).getTime();
         whereClause.push("fees.updated_on >= :start_date");
         replacements.start_date = startDate;
       }
-      if (endDate) {
+      if (endDateStr) {
+        const endDate = new Date(endDateStr).getTime() + (24 * 60 * 60 * 1000) - 1;
         whereClause.push("fees.updated_on <= :end_date");
         replacements.end_date = endDate;
       }
