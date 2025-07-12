@@ -71,16 +71,16 @@ export async function createContactUs(request: FastifyRequest, reply: FastifyRep
                     },
                     userId: user.sub ?? "",
                 };
-
                 sendNotification(notificationPayload);
-
             }
-        })();
+        })().catch((err) => {
+            console.error("Error in notification block:", err);
+        });
 
         return reply.status(200).send({
             status: "success",
             message: "created successfully.",
-            traceId:traceId,
+            traceId: traceId,
             data: { your_detail, support_email, subject, URL, message },
         });
     } catch (error) {
