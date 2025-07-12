@@ -6,6 +6,7 @@ import { beforeSave } from '../hooks/timeFormatHook';
 class Currencies extends Model {
   id: any;
   name: any;
+  symbol:any
 }
 
 Currencies.init(

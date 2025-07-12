@@ -4,6 +4,7 @@ import { QueryTypes, Sequelize } from "sequelize";
 import { databaseConfig } from '../config/db';
 import axios from 'axios';
 import { sequelize } from '../config/instance';
+import Currencies from '../models/currencies.model';
 const config_db = databaseConfig.config.database;
 const sourcing_url = databaseConfig.config.sourcing_url;
 const teai_url= databaseConfig.config.teai_url
@@ -384,18 +385,13 @@ export const handleErrorProperly = (error: any, entity: string) => {
 
 				 
 export async function formatCurrencyAmount(currencyCode: string, amount: number): Promise<string> {
-    const currencySymbols: Record<string, string> = {
-      AUD: "A$",
-      CAD: "C$",
-      CNY: "¥",
-      EUR: "€",
-      GBP: "£",
-      INR: "₹",
-      JPY: "¥",
-      NZD: "$",
-      USD: "$",
-    };
-    const symbol = currencySymbols[currencyCode] || "";
-    const formattedAmount = Number(amount).toLocaleString("en-US");
-    return `${symbol} ${formattedAmount}`;
+  const currency = await Currencies.findOne({
+    where: { code: currencyCode },
+    attributes: ['symbol'],
+    raw: true
+  });
+
+  const symbol = currency?.symbol || '';
+  const formattedAmount = Number(amount).toLocaleString("en-US");
+  return `${symbol} ${formattedAmount}`;
   }
