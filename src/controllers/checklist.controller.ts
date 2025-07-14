@@ -384,6 +384,7 @@ export async function filterChecklists(
             is_enabled?: boolean | string;
             entity_id?: string;
             name?: string;
+            sourcing_model?: 'contingent' | 'headcount_track' | 'sow'; 
             limit?: number | string;
             page?: number | string;
         };
@@ -396,6 +397,7 @@ export async function filterChecklists(
     const {
         is_enabled,
         name,
+        sourcing_model,
         limit: rawLimit = '10',
         page: rawPage = '1',
     } = request.query;
@@ -413,6 +415,10 @@ export async function filterChecklists(
             is_deleted: false,
             program_id,
         };
+
+        if (sourcing_model) {
+            whereConditions.sourcing_model = sourcing_model;
+        }
 
         if (is_enabled !== undefined) {
             if (typeof is_enabled === 'string') {
@@ -496,6 +502,7 @@ export async function filterChecklists(
         });
     }
 }
+
 
 export async function enableDisableChecklist(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
