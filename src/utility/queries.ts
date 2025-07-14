@@ -334,57 +334,106 @@ export const complianceDocumentGetByUserAndDocumentId = `
         AND (:document_id IS NULL OR vcd.id = :document_id)
 `;
 
-export const complianceDocumentGetByVendorId = `
-  SELECT DISTINCT
-      vcd.id,
-      vcd.program_id,
-      vcd.name,
-      vcd.act,
-      vcd.document_number,
-      vcd.upload_document_days,
-      vcd.attached_doc_url,
-      vcd.created_on,
-      vcd.updated_on,
-      vcd.is_enabled,
-      vcd.is_deleted,
-      vcd.to_uploaded,
-      vcd.no_of_days,
-      vcrm.id AS doc_id,
-      vcrm.next_expiry_on,
-      vcrm.status,
-      vcrm.file_name,
-      vcrm.expiry_on,
-      vcrm.url,
-      vcrm.audited_on,
-      vcrm.compliance_note,
-      vcrm.updated_on,
-      vcrm.created_on,
-      u.first_name,
-      u.last_name,
-      vcd.uploaded_document,
-      (
-          SELECT COUNT(DISTINCT vcd_inner.id)
-          FROM vendor_compliance_req_doc_mappings vcrm_inner
-          LEFT JOIN vendor_compliance_documents vcd_inner ON vcd_inner.id = vcrm_inner.required_document_id
-          WHERE vcd_inner.program_id = :program_id
-            AND vcrm_inner.vendor_id = :vendor_id
-            AND (:name IS NULL OR vcd_inner.name LIKE :name)
-            AND (:is_enabled IS NULL OR vcd_inner.is_enabled LIKE :is_enabled)
-      ) AS total_count
-  FROM vendor_compliance_req_doc_mappings vcrm
-  LEFT JOIN vendor_compliance_documents vcd ON vcd.id = vcrm.required_document_id
-  LEFT JOIN user u ON u.user_id = vcrm.audited_by
-
-  WHERE vcd.program_id = :program_id
-    AND vcrm.program_id = :program_id
+export const complianceDocumentGetByVendorId = (replacements: any) => {
+  let whereClause = `
+    vcrm.program_id = :program_id
     AND vcrm.vendor_id = :vendor_id
+    AND vcd.program_id = :program_id
+    AND (vcrm.program_id IS NULL OR vcrm.program_id = :program_id)
     AND (:name IS NULL OR vcd.name LIKE :name)
     AND (:is_enabled IS NULL OR vcd.is_enabled LIKE :is_enabled)
-
-  GROUP BY vcd.id
-  ORDER BY vcrm.updated_on DESC
-  LIMIT :limit OFFSET :offset
+    AND (:next_expiry_on IS NULL OR vcrm.next_expiry_on = :next_expiry_on)
+    AND (:expiry_on IS NULL OR vcrm.expiry_on = :expiry_on)
   `;
+
+  let countWhereClause = `
+    vcrm_sub.program_id = :program_id
+    AND vcrm_sub.vendor_id = :vendor_id
+    AND vcd_sub.program_id = :program_id
+    AND (vcrm_sub.program_id IS NULL OR vcrm_sub.program_id = :program_id)
+    AND (:name IS NULL OR vcd_sub.name LIKE :name)
+    AND (:is_enabled IS NULL OR vcd_sub.is_enabled LIKE :is_enabled)
+    AND (:next_expiry_on IS NULL OR vcrm_sub.next_expiry_on = :next_expiry_on)
+    AND (:expiry_on IS NULL OR vcrm_sub.expiry_on = :expiry_on)
+  `;
+
+  if (replacements.updated_on) {
+    whereClause += `
+      AND (DATE(FROM_UNIXTIME(vcrm.updated_on / 1000)) = DATE(:updated_on))
+    `;
+    countWhereClause += `
+      AND (DATE(FROM_UNIXTIME(vcrm_sub.updated_on / 1000)) = DATE(:updated_on))
+    `;
+  }
+
+  if (replacements.compliance_verified) {
+    whereClause += `
+      AND ( u.first_name LIKE :compliance_verified OR
+            u.last_name LIKE :compliance_verified OR
+            CONCAT(u.first_name, ' ', u.last_name) LIKE :compliance_verified
+          )
+    `;
+    countWhereClause += `
+      AND ( u_sub.first_name LIKE :compliance_verified OR
+            u_sub.last_name LIKE :compliance_verified OR
+            CONCAT(u_sub.first_name, ' ', u_sub.last_name) LIKE :compliance_verified
+          )
+    `;
+  }
+
+  if (replacements.status && replacements.status.length > 0) {
+    const statuses: string[] = replacements.status.map((s: string) => s.trim());
+    const statusList = statuses.map((s: string) => `'${s}'`).join(',');
+
+    whereClause += ` AND (vcrm.status IN (${statusList}))`;
+    countWhereClause += ` AND (vcrm_sub.status IN (${statusList}))`;
+  }
+
+  return `
+    SELECT DISTINCT
+        vcd.id,
+        vcd.program_id,
+        vcd.name,
+        vcd.act,
+        vcd.document_number,
+        vcd.upload_document_days,
+        vcd.attached_doc_url,
+        vcd.created_on,
+        vcd.updated_on,
+        vcd.is_enabled,
+        vcd.is_deleted,
+        vcd.to_uploaded,
+        vcd.no_of_days,
+        vcd.document_details,
+        vcrm.id AS doc_id,
+        vcrm.next_expiry_on,
+        vcrm.status,
+        vcrm.file_name,
+        vcrm.expiry_on,
+        vcrm.url,
+        vcrm.audited_on,
+        vcrm.compliance_note,
+        vcrm.updated_on,
+        vcrm.created_on,
+        u.first_name,
+        u.last_name,
+        vcd.uploaded_document,
+        (
+          SELECT COUNT(DISTINCT vcd_sub.id)
+          FROM vendor_compliance_req_doc_mappings vcrm_sub
+          LEFT JOIN vendor_compliance_documents vcd_sub ON vcd_sub.id = vcrm_sub.required_document_id
+          LEFT JOIN user u_sub ON u_sub.user_id = vcrm_sub.audited_by
+          WHERE ${countWhereClause}
+        ) AS total_count
+    FROM vendor_compliance_req_doc_mappings vcrm
+    LEFT JOIN vendor_compliance_documents vcd ON vcd.id = vcrm.required_document_id
+    LEFT JOIN user u ON u.user_id = vcrm.audited_by
+    WHERE ${whereClause}
+    GROUP BY vcd.id
+    ORDER BY vcrm.updated_on DESC
+    LIMIT :limit OFFSET :offset
+  `;
+};
 
 export const complianceDocumentCountByVendorId = `
     SELECT

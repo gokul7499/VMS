@@ -941,7 +941,8 @@ export const getVendorDocuments = async (
         status = null,
         updated_on = null,
         next_expiry_on = null,
-        compliance_verified = null
+        compliance_verified = null,
+        expiry_on = null
     } = request.query as {
         vendor_id?: string;
         document_id?: string;
@@ -953,6 +954,7 @@ export const getVendorDocuments = async (
         updated_on?: any;
         next_expiry_on?: any;
         compliance_verified?: string;
+        expiry_on?: any;
     };
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
@@ -1003,6 +1005,7 @@ export const getVendorDocuments = async (
             status: statusArray,
             updated_on,
             next_expiry_on,
+            expiry_on,
             compliance_verified: compliance_verified ? `%${compliance_verified}%` : null
         };
 
@@ -1020,7 +1023,7 @@ export const getVendorDocuments = async (
                 }
             );
             display_name = vendorName[0].display_name;
-            documents = await sequelize.query<VendorDetails>(complianceDocumentGetByVendorId, {
+            documents = await sequelize.query<VendorDetails>(complianceDocumentGetByVendorId(replacements), {
                 replacements,
                 type: QueryTypes.SELECT,
             });
