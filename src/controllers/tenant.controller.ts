@@ -318,14 +318,14 @@ export async function searchTenantsWithProgramCount(request: FastifyRequest, rep
     const responseFields = ["id", "name", "display_name", "contacts", "created_on", "is_enabled", "type", "logo", "vendor_code"];
     const traceId = generateCustomUUID();
     try {
-        const query = request.query as Record<string, string>;
-        const page = query.page ? parseInt(query.page) : null;
-        const limit = query.limit ? parseInt(query.limit) : null;
+        const body = request.body as Record<string, string>;
+        const page = body.page ? parseInt(body.page) : null;
+        const limit = body.limit ? parseInt(body.limit) : null;
         const offset = page && limit ? (page - 1) * limit : undefined;
 
 
-        const sortField = query.sortField || "created_on";
-        const sortDirection = query.sortDirection || "DESC";
+        const sortField = body.sortField || "created_on";
+        const sortDirection = body.sortDirection || "DESC";
 
         const validSortFields = [...searchFields, "created_on"];
         const validDirections: ("ASC" | "DESC")[] = ["ASC", "DESC"];
@@ -336,22 +336,22 @@ export async function searchTenantsWithProgramCount(request: FastifyRequest, rep
         let searchConditions: any = {};
 
         searchFields.forEach(field => {
-            if (query[field]) {
+            if (body[field]) {
                 if (field === "is_enabled") {
-                    searchConditions[field] = query[field] === "true" ? 1 : 0;
+                    searchConditions[field] = body[field] === "true" ? 1 : 0;
                 } else {
                     searchConditions[field] = {
-                        [Op.like]: `%${query[field].trim()}%`
+                        [Op.like]: `%${body[field].trim()}%`
                     };
                 }
             }
         });
 
         let attributes: any[] | undefined = responseFields.map(field => [field, field]);
-        if (query.info_level === "detail") {
+        if (body.info_level === "detail") {
             attributes = undefined;
         } else {
-            if (query.type.toUpperCase() === "VENDOR") {
+            if (body.type.toUpperCase() === "VENDOR") {
                 attributes.push([
                     Sequelize.literal(`(
                         SELECT COUNT(*)
@@ -361,7 +361,7 @@ export async function searchTenantsWithProgramCount(request: FastifyRequest, rep
                     "program_count"
                 ]);
             }
-            else if (query.type.toUpperCase() === "MSP") {
+            else if (body.type.toUpperCase() === "MSP") {
                 attributes.push([
                     Sequelize.literal(`(
                         SELECT COUNT(*)
