@@ -549,7 +549,7 @@ async function handleSowModule(workflowTriggerId: string | undefined, reply: Fas
     const workflowMethodIds = workflows.map((workflow: any) => workflow.method_id);
 
     const responses = response.filter(i => {
-        return i.method_ids.some((id: string) => workflowMethodIds.includes(id));
+        return i?.method_ids?.some((id: string) => workflowMethodIds?.includes(id));
     });
     
     if (!responses.length) {
