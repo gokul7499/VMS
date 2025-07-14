@@ -2999,6 +2999,15 @@ async function processWorkflowRow(row: any, workflows: { [key: string]: Workflow
                         }
                     }
 
+                    let replaced_user_data = null;
+                    if (replaced_by) {
+                        const replacedUserResult = await fetchUserData(replaced_by, program_id);
+                        if (replacedUserResult?.length) {
+                            replaced_user_data = mapReplacedUserData(replacedUserResult[0],recipientTypeName, recipient_details, behaviour);
+                        }
+                    }
+                    
+
                     let imposonate_user_data = null;
                     if (user_type?.toLowerCase() !== "super_user" && (rt?.impersonate_by || imporsonate_by)) {
                         const imporsonater = rt?.impersonate_by || imporsonate_by
@@ -3028,7 +3037,8 @@ async function processWorkflowRow(row: any, workflows: { [key: string]: Workflow
                         email: userData.email,
                         recipient_type: recipientTypeName,
                         behaviour: rt.behaviour || behaviour,
-                        imporsonate_by: imposonate_user_data
+                        imporsonate_by: imposonate_user_data,
+                        replaced_by: replaced_user_data
                     };
                     
                     recipients.push(recipient);
