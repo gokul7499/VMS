@@ -702,7 +702,6 @@ export async function getExpenseConfigByExpenseType(request: FastifyRequest, rep
             where: whereCondition,
             order: [['created_on', 'DESC']],
         });
-
         // If no configuration found, return null
         if (!expenseConfig) {
             reply.status(200).send({
@@ -740,7 +739,7 @@ export async function getExpenseConfigByExpenseType(request: FastifyRequest, rep
         let populatedProjects = null;
         const projects = configJSON.projects;
 
-       if (projects?.source && projects.options) {
+        if (projects?.source && projects.options) {
             let optionsArray: string[] = [];
             if (Array.isArray(projects.options)) {
                 optionsArray = projects.options;
@@ -749,21 +748,21 @@ export async function getExpenseConfigByExpenseType(request: FastifyRequest, rep
                     ? projects.options.split(",").map((id: string) => id.trim())
                     : [projects.options];
             }
-                    let records: any[] = [];
+            let records: any[] = [];
 
             if (projects.source === "master_data_type") {
                 records = await FoundationalDataTypes.findAll({
-                    where: { id: { [Op.in]: projects.options } },
+                    where: { id: { [Op.in]: optionsArray } },
                     attributes: ['id', 'name'],
                 });
             } else if (projects.source === "hierarchy") {
                 records = await Hierarchies.findAll({
-                    where: { id: { [Op.in]: projects.options } },
+                    where: { id: { [Op.in]: optionsArray } },
                     attributes: ['id', 'name'],
                 });
             } else if (projects.source === "custom_field") {
                 records = await CustomField.findAll({
-                    where: { id: { [Op.in]: projects.options } },
+                    where: { id: { [Op.in]: optionsArray } },
                     attributes: ['id', 'name'],
                 });
             }
@@ -776,6 +775,7 @@ export async function getExpenseConfigByExpenseType(request: FastifyRequest, rep
                 })),
             };
         }
+
         const result = {
             ...configJSON,
             hierarchy_ids: hierarchies.map(h => ({ id: h.id, name: h.name })),
@@ -787,7 +787,6 @@ export async function getExpenseConfigByExpenseType(request: FastifyRequest, rep
                 acc[category].push(expense);
                 return acc;
             }, {}),
-
             projects: populatedProjects,
         };
 
@@ -806,4 +805,5 @@ export async function getExpenseConfigByExpenseType(request: FastifyRequest, rep
             error: (error as Error).message,
         });
     }
+
 }
