@@ -740,8 +740,16 @@ export async function getExpenseConfigByExpenseType(request: FastifyRequest, rep
         let populatedProjects = null;
         const projects = configJSON.projects;
 
-        if (projects?.source && Array.isArray(projects.options)) {
-            let records: any[] = [];
+       if (projects?.source && projects.options) {
+            let optionsArray: string[] = [];
+            if (Array.isArray(projects.options)) {
+                optionsArray = projects.options;
+            } else if (typeof projects.options === "string") {
+                optionsArray = projects.options.includes(",")
+                    ? projects.options.split(",").map((id: string) => id.trim())
+                    : [projects.options];
+            }
+                    let records: any[] = [];
 
             if (projects.source === "master_data_type") {
                 records = await FoundationalDataTypes.findAll({
