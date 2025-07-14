@@ -12,7 +12,7 @@ import { logger } from '../utility/loggerService';
 import { NotificationDataPayload } from "../interfaces/noifications-data-payload.interface";
 import { EmailRecipient } from "../interfaces/email-recipient";
 import { sendNotification } from '../utility/notificationService';
-import { FetchUsersBasedOnHierarchy, getAssignmentDetails, getJobDetails, getOfferDetails, getProgramVendorsEmail, getWorkflowDetails, isVendorRequired } from "../utility/notification-helper";
+import { FetchUsersBasedOnHierarchy, formatCurrencyAmount, getAssignmentDetails, getJobDetails, getOfferDetails, getProgramVendorsEmail, getWorkflowDetails, isVendorRequired } from "../utility/notification-helper";
 import sendNotificationModel from '../models/send-notifications-log.model';
 import axios from 'axios';
 import { databaseConfig } from '../config/db';
@@ -400,6 +400,12 @@ export const updateWorkflowStatus = async (
             });
         }
 
+        const workflowTriggerId = workflow?.dataValues?.workflow_trigger_id;
+        const oldAssignmentData = workflowTriggerId
+        ? await getAssignmentDetails(workflowTriggerId, program_id, token)
+        : null;
+        const oldAmount = oldAssignmentData?.data?.finance?.gross_allocated_budget || 0;
+
         // let managerData: any = await getManagerDetails(program_id, id)
         let levels = workflow.levels || [];
         let updatedLevels = false;
@@ -736,7 +742,7 @@ export const updateWorkflowStatus = async (
                     program_id: program_id,
                     user_type: eventCode?.user_type || ''
                 };
-                let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode);
+                let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode, oldAmount );
                 await updateWorkflowPreviousCompltedStatus(request, reply, workflow)
             }
         }
@@ -1124,7 +1130,7 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
         return reply.status(500).send({ message: 'Internal Server Error' });
     }
 }
-async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyReply, workflowStatus: any, workflow: any, updates: any, program_id: any, id: any, allPayload: any, eventCode: any) {
+async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyReply, workflowStatus: any, workflow: any, updates: any, program_id: any, id: any, allPayload: any, eventCode: any, oldAmount:any) {
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
@@ -1156,6 +1162,10 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
 
               const eventCodeStr = String(eventCode?.eventCode ?? '');
               const isOfferEvent = eventCodeStr.includes('OFFER');
+              const isAssignmentEvent = [
+              "BUDGET_INCREASE_APPROVED",
+              "BUDGET_REDUCED_APPROVAL"
+              ].includes(eventCode?.eventCode) || eventCode?.eventCode?.toLowerCase()?.includes("assignment");
 
               const offerData = isOfferEvent && workflow?.dataValues?.workflow_trigger_id
               ? await getOfferDetails(workflow.dataValues.workflow_trigger_id, program_id, token)
@@ -1164,6 +1174,14 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
               const jobDatas = workflow?.dataValues?.job_id
               ? await getJobDetails(workflow.dataValues.job_id, program_id, token)
               : null;
+
+              const workflowTriggerId = workflow?.dataValues?.workflow_trigger_id;
+              const assignmentData = isAssignmentEvent && workflowTriggerId
+              ? await getAssignmentDetails(workflowTriggerId, program_id, token)
+              : null;
+              const newBudget = assignmentData?.data?.finance?.gross_allocated_budget || 0;
+              const requestedAmount = (oldAmount != null && newBudget != null) ? Math.abs(oldAmount - newBudget) : 0;
+              const currency = assignmentData?.data?.finance?.currency ?? "USD";
 
         let userType = userData[0]
         if (userType?.user_type?.toLowerCase() == "msp".toLowerCase() || userType?.user_type?.toLowerCase() == "client".toLowerCase() || user.userType?.toLowerCase() == "super_user".toLowerCase()) {
@@ -1180,7 +1198,13 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
                 candidate_first_name:workflowDetails?.first_name ||"",
                 candidate_last_name:workflowDetails?.last_name ||"",
                 offer_id:offerData?.data?.offer?.offer_code || "",
-                offer_url: offerData?.data?.offer.candidate_id ? `${ui_base_url}/jobs/view-submit/${offerData?.data?.offer?.candidate_id}/job/${offerData?.data?.offer?.id}?offerId=${offerData?.data?.id}&detail=offer`:""
+                offer_url: offerData?.data?.offer.candidate_id ? `${ui_base_url}/jobs/view-submit/${offerData?.data?.offer?.candidate_id}/job/${offerData?.data?.offer?.id}?offerId=${offerData?.data?.id}&detail=offer`:"",
+			    assignment_title_name : assignmentData?.data?.assignment?.source_details?.title ?? "",
+                assignment_id : assignmentData?.data?.assignment?.source_details?.code ?? "",
+                duration : assignmentData?.data?.finance?.working_duration ?? 0,
+                currency  :  assignmentData?.data?.finance?.currency ?? "USD",
+                remaining_budget_amount : await formatCurrencyAmount(currency, assignmentData?.data?.finance?.net_allocated_budget ?? 0),
+                budget_amount :await formatCurrencyAmount(currency, requestedAmount),               
 
             };
 
@@ -1735,7 +1759,7 @@ export const rejectLevel = async (
             user_type: eventCode?.user_type
         }
         
-        await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode)
+        await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode , null)
         await updateRejectStatusInAllWorkflowModule(request, reply, program_id, id, workflow, updates )
          if (job_id) {
                try {
@@ -4397,10 +4421,6 @@ async function getTriggeredEventsCode(flow_type: any, event: any) {
         return NotificationEventCode.CANDIDATE_SHORTLIST_REQUEST_FIRST;
     } else if (flow_type === "Approval" && event === "submit_candidate_rehire_check") {
         return NotificationEventCode.RE_HIRE_APPROVAL;
-    } else if (flow_type === "Approval" && (event === "BUDGET_INCREASED" || event === "assignment_budget_adjustment")) {
-        return NotificationEventCode.BUDGET_INCREASED_APPROVAL;
-    } else if (flow_type === "Approval" && (event === "BUDGET_REDUCED" || event === "assignment_budget_adjustment")) {
-        return NotificationEventCode.BUDGET_REDUCED_APPROVAL;
     } else {
          return null
         // throw new Error(`Event code not found for event: ${event}`);
