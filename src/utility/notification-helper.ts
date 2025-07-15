@@ -8,6 +8,7 @@ import Currencies from '../models/currencies.model';
 const config_db = databaseConfig.config.database;
 const sourcing_url = databaseConfig.config.sourcing_url;
 const teai_url= databaseConfig.config.teai_url
+const db_sourcing=databaseConfig.config.db_sourcing;
 
 export async function getUsersWithHierarchy(
     sequelize: any,
@@ -395,3 +396,25 @@ export async function formatCurrencyAmount(currencyCode: string, amount: number)
   const formattedAmount = Number(amount).toLocaleString("en-US");
   return `${symbol} ${formattedAmount}`;
   }
+
+
+export const getSubmissionData = async (id: string, program_id: string, token: string) => {
+    const data = `${sourcing_url}/v1/api/program/${program_id}/get-submission-candidate/${id}`
+    try {
+        const response = await axios.get(data, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+        });
+
+        if (!response.data) {
+            console.warn("Submission details not found.");
+            return { status: 404, message: "Submission details not found", data: null };
+        }
+        console.log('Submission details fetched successfully');
+        return { status: 200, message: "Success", data: response.data };
+    } catch (error: any) {
+        return handleErrorProperly(error, "Submission details");
+    }
+};

@@ -12,7 +12,7 @@ import { logger } from '../utility/loggerService';
 import { NotificationDataPayload } from "../interfaces/noifications-data-payload.interface";
 import { EmailRecipient } from "../interfaces/email-recipient";
 import { sendNotification } from '../utility/notificationService';
-import { FetchUsersBasedOnHierarchy, formatCurrencyAmount, getAssignmentDetails, getJobDetails, getOfferDetails, getProgramVendorsEmail, getWorkflowDetails, isVendorRequired } from "../utility/notification-helper";
+import { FetchUsersBasedOnHierarchy, formatCurrencyAmount, getAssignmentDetails, getJobDetails, getOfferDetails, getProgramVendorsEmail, getSubmissionData, getWorkflowDetails, isVendorRequired } from "../utility/notification-helper";
 import sendNotificationModel from '../models/send-notifications-log.model';
 import axios from 'axios';
 import { databaseConfig } from '../config/db';
@@ -1188,26 +1188,30 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
 
             // Fetch manager details
             let managerData: any = await getManagerDetails(program_id, id);
+            const submissionData = await getSubmissionData(workflow.dataValues.candidate_id, program_id, token);
             const payload = {
-                user_type: user?.userType,                
+                user_type: user?.userType,
                 job_id: jobDatas?.data?.job?.job_id || "",
                 job_url: jobDatas
                     ? `${ui_base_url}/jobs/job/view/${jobDatas?.data?.job?.id}/${jobDatas?.data?.job?.job_template_id}?detail=job-details`
                     : '',
+                submission_id: submissionData?.data?.submission_candidate?.unique_id || "",
+                sourcing_url: submissionData
+                    ? `${ui_base_url}/jobs/view-submit/${submissionData.data.submission_candidate.candidate_id}/job/${jobDatas?.data?.job?.id}?submission_id=${submissionData.data.submission_candidate.id}&detail=submission`
+                    : "",
                 status_reason: updates[0]?.reason,
-                candidate_first_name:workflowDetails?.first_name ||"",
-                candidate_last_name:workflowDetails?.last_name ||"",
-                offer_id:offerData?.data?.offer?.offer_code || "",
-                offer_url: offerData?.data?.offer.candidate_id ? `${ui_base_url}/jobs/view-submit/${offerData?.data?.offer?.candidate_id}/job/${offerData?.data?.offer?.id}?offerId=${offerData?.data?.id}&detail=offer`:"",
-			    assignment_title_name : assignmentData?.data?.assignment?.source_details?.title ?? "",
-                assignment_id : assignmentData?.data?.assignment?.source_details?.code ?? "",
-                duration : assignmentData?.data?.finance?.working_duration ?? 0,
-                currency  :  assignmentData?.data?.finance?.currency ?? "USD",
-                remaining_budget_amount : await formatCurrencyAmount(currency, assignmentData?.data?.finance?.net_allocated_budget ?? 0),
-                budget_amount :await formatCurrencyAmount(currency, requestedAmount),               
+                candidate_first_name: workflowDetails?.first_name || "",
+                candidate_last_name: workflowDetails?.last_name || "",
+                offer_id: offerData?.data?.offer?.offer_code || "",
+                offer_url: offerData?.data?.offer.candidate_id ? `${ui_base_url}/jobs/view-submit/${offerData?.data?.offer?.candidate_id}/job/${offerData?.data?.offer?.id}?offerId=${offerData?.data?.id}&detail=offer` : "",
+                assignment_title_name: assignmentData?.data?.assignment?.source_details?.title ?? "",
+                assignment_id: assignmentData?.data?.assignment?.source_details?.code ?? "",
+                duration: assignmentData?.data?.finance?.working_duration ?? 0,
+                currency: assignmentData?.data?.finance?.currency ?? "USD",
+                remaining_budget_amount: await formatCurrencyAmount(currency, assignmentData?.data?.finance?.net_allocated_budget ?? 0),
+                budget_amount: await formatCurrencyAmount(currency, requestedAmount),
 
             };
-
             const recipientEmailArray: EmailRecipient[] = [];
             // Prepare and send notification for manager data
             if (managerData && managerData.data && managerData.data.email) {
