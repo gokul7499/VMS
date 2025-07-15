@@ -292,7 +292,7 @@ export async function getFeesConfig(
     const { program_id } = request.params as { program_id: string };
     const { hierarchy_levels, vendors, labor_category, source_model, is_enabled } = request.query as { hierarchy_levels: string, vendors: string, labor_category: string, source_model: string, is_enabled: string };
     const hierarchyLevelsArray = Array.isArray(hierarchy_levels) ? hierarchy_levels : (hierarchy_levels ?? '').split(',');
-
+    
     const whereConditions: any = {
       program_id,
       is_enabled: is_enabled ? is_enabled === "true" : undefined,
@@ -306,10 +306,15 @@ export async function getFeesConfig(
             )
           ]
         },
+        {
+      [Op.or]: [
+        { is_all_labor_category: true },
         Sequelize.where(
           Sequelize.fn('JSON_CONTAINS', Sequelize.col('labor_category'), JSON.stringify(labor_category)),
           true
-        ),
+        )
+      ]
+    },
         Sequelize.where(
           Sequelize.fn('LOWER', Sequelize.fn('JSON_UNQUOTE', Sequelize.col('source_model'))),
           { [Op.like]: `%${source_model.toLowerCase()}%` }
