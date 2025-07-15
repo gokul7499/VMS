@@ -15,6 +15,7 @@ import CountryModel from '../models/countries.model';
 import CustomField from '../models/custom-fields.model';
 import GlobalRepository from '../repositories/global.repository';
 import { getCustomsField } from '../utility/get-custom-field';
+import { parseValue } from '../utility/parse-value';
 
 interface HierarchyItem {
   support_email: any;
@@ -276,13 +277,18 @@ export async function getHierarchiesById(request: FastifyRequest, reply: Fastify
           type: QueryTypes.SELECT,
         }
       ) as any;
+      const customFields = customFieldResult?.custom_fields
+      .map((field: any) => ({
+        ...field,
+        value: parseValue(field.value),
+      }))
       return reply.status(200).send({
         status_code: 200,
         message: "Hierarchies data get successfully",
         trace_id: traceId,
         hierarchies: {
           ...hierarchy,
-          custom_fields: customFieldResult?.custom_fields || [],
+          custom_fields: customFields || [],
         }
       });
     } else {
