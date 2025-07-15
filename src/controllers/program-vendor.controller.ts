@@ -542,44 +542,53 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
             }
         }
 
-        if (programVendorData.com_doc_group && Array.isArray(programVendorData.com_doc_group)) {
-            const complianceDocuments = await sequelize.query<{ id: any }>(`   
-            SELECT DISTINCT vd.id 
-            FROM vendor_document_groups vdg
-              JOIN JSON_TABLE(
-                vdg.required_documents,
-                '$[*]' COLUMNS (doc_id VARCHAR(255) PATH '$')
-              ) AS docs ON true
-            JOIN vendor_compliance_documents vd ON vd.id = docs.doc_id
-            WHERE vdg.id IN (:groupIds)
-            ;`,
-                { replacements: { groupIds: programVendorData.com_doc_group, }, type: QueryTypes.SELECT, transaction, }
-            );
+        if (programVendorData.com_doc_group || programVendorData.com_doc_group === null) {
+            if (programVendorData.com_doc_group && Array.isArray(programVendorData.com_doc_group)) {
+                const complianceDocuments = await sequelize.query<{ id: any }>(`   
+                   SELECT DISTINCT vd.id 
+                   FROM vendor_document_groups vdg
+                   JOIN JSON_TABLE(
+                      vdg.required_documents,
+                      '$[*]' COLUMNS (doc_id VARCHAR(255) PATH '$')
+                   ) AS docs ON true
+                   JOIN vendor_compliance_documents vd ON vd.id = docs.doc_id
+                   WHERE vdg.id IN (:groupIds);`,
+                    { replacements: { groupIds: programVendorData.com_doc_group, }, type: QueryTypes.SELECT, transaction, }
+                );
 
-            for (const doc of complianceDocuments) {
-                const existingMapping = await VendorComplianceReqDocMappingModel.findOne({
+                for (const doc of complianceDocuments) {
+                    const existingMapping = await VendorComplianceReqDocMappingModel.findOne({
+                        where: {
+                            vendor_id: existingProgramVendor.id,
+                            required_document_id: doc.id,
+                        },
+                        transaction,
+                    });
+
+                    if (!existingMapping) {
+                        await VendorComplianceReqDocMappingModel.create(
+                            {
+                                vendor_id: existingProgramVendor.id,
+                                required_document_id: doc.id,
+                                program_id: program_id,
+                                status: "Pending Upload",
+                                created_on: Date.now(),
+                                updated_on: Date.now(),
+                                created_by: userId,
+                                updated_by: userId,
+                            },
+                            { transaction }
+                        );
+                    }
+                }
+            } else {
+                await VendorComplianceReqDocMappingModel.destroy({
                     where: {
                         vendor_id: existingProgramVendor.id,
-                        required_document_id: doc.id,
+                        program_id: program_id,
                     },
                     transaction,
                 });
-
-                if (!existingMapping) {
-                    await VendorComplianceReqDocMappingModel.create(
-                        {
-                            vendor_id: existingProgramVendor.id,
-                            required_document_id: doc.id,
-                            program_id: program_id,
-                            status: "Pending Upload",
-                            created_on: Date.now(),
-                            updated_on: Date.now(),
-                            created_by: userId,
-                            updated_by: userId,
-                        },
-                        { transaction }
-                    );
-                }
             }
         }
 
@@ -746,19 +755,19 @@ export const getProgramVendorById = async (request: FastifyRequest, reply: Fasti
 
         const programVendor: ProgramVendor = vendorData[0];
         const [customFields] = await sequelize.query(
-            getCustomsField(programVendor.id, 'vendor_custom_field','vendor_id','custom_field_id'),
+            getCustomsField(programVendor.id, 'vendor_custom_field', 'vendor_id', 'custom_field_id'),
             {
                 replacements: { id: programVendor.id },
                 type: QueryTypes.SELECT
             }
-        )as any;
+        ) as any;
         return reply.status(200).send({
             status_code: 200,
             message: 'Program vendor data fetched successfully.',
             trace_id: traceId,
-            program_vendor:{
+            program_vendor: {
                 ...programVendor,
-                custom_field:customFields?.custom_fields ||[]
+                custom_field: customFields?.custom_fields || []
 
             },
         });
@@ -1438,7 +1447,7 @@ export async function advanceFilter(
             compliance_status === 'Compliant' ? true :
                 compliance_status === 'Non-Compliant' ? false :
                     null;
-                    
+
         const hasComplianceStatus = compliance_status !== undefined && compliance_status !== null && compliance_status !== '';
         const hasQueryName = !!display_name;
         const hasCountry = !!country_id;
