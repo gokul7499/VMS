@@ -5080,7 +5080,7 @@ async function processRow(row: any, context: any): Promise<void> {
             meta_data
         }
     );
-    
+
     if (result?.input_value) {
         addRecipientsToLevel(levelInfo, result, row, recipientType, behaviour);
     }
@@ -5550,7 +5550,7 @@ function addRecipientsToLevel(levelData: any, result: any, row: any, recipientTy
             actor_first_name: user.actor_first_name,
             actor_last_name: user.actor_last_name,
             actor_by_avatar: user.actor_by_avatar,
-            is_admin_override: user.is_admin_override,
+            is_admin_override: user?.is_admin_override === true || user?.is_admin_override === 'true',
             status: user.receipentStatus || recipient_status,
             updated_on: user.updated_on,
             notes: user.notes,
@@ -5581,7 +5581,7 @@ function addRecipientsToLevel(levelData: any, result: any, row: any, recipientTy
             actor_first_name: recipient_details?.actor_first_name,
             actor_last_name: recipient_details?.actor_last_name,
             actor_by_avatar: recipient_details?.actor_by_avatar,
-            is_admin_override: recipient_details?.is_admin_override,
+            is_admin_override: recipient_details?.is_admin_override === true || recipient_details?.is_admin_override === 'true',
             user_id: input_value.id,
             avatar: input_value.avatar?.url || '',
             role_id: input_value.role_id,
