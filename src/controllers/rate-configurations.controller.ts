@@ -36,17 +36,17 @@ export const createRateConfigurations = async (
                 replacements: {
                     program_id,
                     hierarchies: rateConfigurationsPayload.hierarchies || [],
-                    job_templates: rateConfigurationsPayload.job_templates || []
+                    job_templates: rateConfigurationsPayload.job_templates || [],
+                    job_type: rateConfigurationsPayload.job_type ?? null,
                 },
                 type: QueryTypes.SELECT,
                 transaction
             });
-
             if (existingConfigurations.length > 0) {
                 await transaction.rollback();
                 return reply.status(409).send({
                     status_code: 409,
-                    message: 'Rate configurations with the same hierarchy and job template already exist.',
+                    message: 'Rate configurations with the same hierarchy job template and job type already exist.',
                     trace_id: traceId,
                 });
             }
