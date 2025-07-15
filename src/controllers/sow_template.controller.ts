@@ -12,6 +12,7 @@ import SOWTemplateMasterDataModel from '../models/sow-templare-master-data.model
 import SowTemplateCustomField from '../models/sow-template-custom-flied.model';
 import { getCustomsField } from '../utility/get-custom-field';
 import { getMasterData } from '../utility/get-master-data';
+import { parseValue } from '../utility/parse-value';
 
 export async function createSowTemplate(
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -322,6 +323,12 @@ export const getSowTemplate = async (request: FastifyRequest, reply: FastifyRepl
                 type: QueryTypes.SELECT,
             }
         ) as any;
+        const customFields = customFieldResult?.custom_fields.map(
+          (field: any) => ({
+            ...field,
+            value: parseValue(field.value),
+          })
+        );
 
         const [masterDataResult] = await sequelize.query(
             getMasterData('sow_template_master_data', 'sow_temp_id', 'master_data_type', 'master_data', false),
@@ -337,7 +344,7 @@ export const getSowTemplate = async (request: FastifyRequest, reply: FastifyRepl
             message: 'SOW Template retrieved successfully.',
             data: {
                 ...sowTemplateRecord,
-                custom_fields: customFieldResult.custom_fields,
+                custom_fields: customFields || [],
                 master_data: masterDataResult.master_data
             },
         });

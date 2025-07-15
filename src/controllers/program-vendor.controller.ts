@@ -19,6 +19,7 @@ import UserModel from "../models/user.model";
 import VendorCustomField from "../models/vendor-custom-field.model";
 import { getCustomsField } from "../utility/get-custom-field";
 import { replace } from "lodash";
+import { parseValue } from "../utility/parse-value";
 interface VendorDetails {
     document_details: any;
     doc_id: any;
@@ -255,13 +256,31 @@ export async function getProgramVendors(
                     replacements: { program_id: program_id, id: vendor.id || null },
                     type: QueryTypes.SELECT,
                 }) as any;
+                 const [customFieldsResult] = (await sequelize.query(
+                   getCustomsField(
+                    vendorDetails.program_vendor_id,
+                    "vendor_custom_field",
+                     "vendor_id",
+                      "custom_field_id"
+                    ),
+                {
+                 replacements: { id: vendorDetails.program_vendor_id },
+                 type: QueryTypes.SELECT,
+                }
+                )) as any;
+                const customFields = customFieldsResult?.custom_fields.map(
+               (field: any) => ({
+               ...field,
+              value: parseValue(field.value),
+                })
+               );
 
                 const transformedVendor = {
                     ...vendor.toJSON(),
                     hierarchies: vendorDetails.length > 0 ? vendorDetails[0].hierarchies : [],
                     work_locations: vendorDetails.length > 0 ? vendorDetails[0].work_locations : [],
                     associate_labour_category: vendorDetails.length > 0 ? vendorDetails[0].labour_category : [],
-                    custom_fields: vendorDetails.length > 0 ? vendorDetails[0].custom_fields : []
+                    custom_fields: customFields||[]
                 };
 
                 return transformedVendor;
@@ -754,20 +773,26 @@ export const getProgramVendorById = async (request: FastifyRequest, reply: Fasti
         }
 
         const programVendor: ProgramVendor = vendorData[0];
-        const [customFields] = await sequelize.query(
-            getCustomsField(programVendor.id, 'vendor_custom_field', 'vendor_id', 'custom_field_id'),
+        const [customFieldsResult] = await sequelize.query(
+            getCustomsField(programVendor.id, 'vendor_custom_field','vendor_id','custom_field_id'),
             {
                 replacements: { id: programVendor.id },
                 type: QueryTypes.SELECT
             }
-        ) as any;
+        )as any;
+        const customFields = customFieldsResult?.custom_fields
+      .map((field: any) => ({
+        ...field,
+        value: parseValue(field.value),
+      }))
+ 
         return reply.status(200).send({
             status_code: 200,
             message: 'Program vendor data fetched successfully.',
             trace_id: traceId,
             program_vendor: {
                 ...programVendor,
-                custom_field: customFields?.custom_fields || []
+                custom_field:customFields ||[]
 
             },
         });
