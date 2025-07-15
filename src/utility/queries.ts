@@ -2075,9 +2075,10 @@ export const sameRateConfiguration = `
     AND rh.hierarchy_id IN (:hierarchies)
     AND rjt.job_template_id IN (:job_templates)
     AND (
-      rc.job_type IS NULL
-      OR JSON_CONTAINS(rc.job_type, JSON_QUOTE(:job_type))
+       :job_type IS NULL OR JSON_CONTAINS(rc.job_type, JSON_QUOTE(:job_type))
     )
+
+    
 `;
 
 

@@ -37,7 +37,7 @@ export const createRateConfigurations = async (
                     program_id,
                     hierarchies: rateConfigurationsPayload.hierarchies || [],
                     job_templates: rateConfigurationsPayload.job_templates || [],
-                    job_type: rateConfigurationsPayload.job_type || null,
+                    job_type: rateConfigurationsPayload.job_type ?? null,
                 },
                 type: QueryTypes.SELECT,
                 transaction
