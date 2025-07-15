@@ -176,7 +176,7 @@ export async function updateCity(
 }
 
 export async function deleteCity(
-  request: FastifyRequest<{ Params: { id: string; state_id: string } }>,
+  request: FastifyRequest<{ Params: { id: string; state_id: string }}>,
   reply: FastifyReply
 ) {
   const { id, state_id } = request.params;
@@ -258,5 +258,11 @@ export const getCityById = async (
       trace_id: generateCustomUUID(),
     });
   } catch (error) {
+      reply.status(500).send({
+      status_code: 500,
+      message: "An error occurred while retrieving city data",
+      error: (error as Error).message,
+      trace_id: traceId,
+    });
   }
 };
