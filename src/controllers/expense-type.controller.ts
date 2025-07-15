@@ -339,25 +339,21 @@ export async function getAllExpenseType(
         }
     }
     if (updated_on) {
-        const dates = updated_on.split(',')
-            .map(d => d.trim())
-            .filter(d => d.length > 0);
-
-        if (dates.length > 0) {
-            const startDate = new Date(dates[0]);
-            const startTimestamp = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0, 0).getTime();
-
-            let endTimestamp;
-            if (dates.length === 1 || !dates[1]) {
-                endTimestamp = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 23, 59, 59, 999).getTime();
-            } else {
-                const endDate = new Date(dates[1]);
-                endTimestamp = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999).getTime();
-            }
-
-            whereClause.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
-        }
+    const [startDateStr, endDateStr] = updated_on.split(",").map(v => v.trim());
+    if (startDateStr && endDateStr) {
+      whereClause.updated_on = {
+        [Op.between]: [startDateStr, endDateStr]
+      };
+    } else if (startDateStr) {
+      whereClause.updated_on = {
+        [Op.gte]: startDateStr
+      };
+    } else if (endDateStr) {
+      whereClause.updated_on = {
+        [Op.lte]: endDateStr
+      };
     }
+  }
 
     const pageNumber = parseInt(page as unknown as string) || 1;
     const pageSize = parseInt(limit as unknown as string) || 10;
