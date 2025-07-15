@@ -339,7 +339,7 @@ export async function getFeesConfig(
       delete whereConditions.is_enabled;
     }
 
-    const data = await feesConfiguration.findOne({
+    const data = await feesConfiguration.findAll({
       where: whereConditions,
       order: [['created_on', 'DESC']]
     });
