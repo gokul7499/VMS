@@ -18,7 +18,6 @@ import ProgramCustomField from "../models/program_custom_field_model";
 import { clonePredefinedPicklistsForProgram } from "./picklist.controller";
 import programMspAssociationModel from "../models/program-msp-association.model";
 import { getCustomsField } from "../utility/get-custom-field";
-import { parseValue } from "../utility/parse-value";
 type MSP = {
   id: string;
   is_enabled: boolean;
@@ -28,7 +27,7 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
   const { msps = [], ...programData } = request.body as CreateProgramData & { msps?: string[] };
   const traceId = generateCustomUUID();
 
-  const user = request?.user
+  const user=request?.user
   const userId = user?.sub;
 
 
@@ -274,76 +273,71 @@ export const getProgramById = async (request: FastifyRequest, reply: FastifyRepl
   const { id } = request.params as { id: string };
   const traceId = generateCustomUUID();
   try {
-    const programs = await Programs.findOne({
+const programs = await Programs.findOne({
+  where: {
+    id: id,
+    is_deleted: false,
+  },
+  include: [
+    {
+      model: Tenant,
+      as: "client",
       where: {
-        id: id,
         is_deleted: false,
       },
-      include: [
-        {
-          model: Tenant,
-          as: "client",
-          where: {
-            is_deleted: false,
-          },
-          attributes: ["name", "display_name", "id", "logo"],
-        },
-        {
-          model: Tenant,
-          as: "msp",
-          required: false,
-          where: {
-            is_deleted: false,
-          },
-          attributes: ["name", "display_name", "id", "logo"],
-        },
-      ],
-      attributes: [
-        "id",
-        "name",
-        "display_name",
-        "description",
-        "type",
-        "start_date",
-        "is_enabled",
-        "unique_id",
-      ],
-    });
+      attributes: ["name", "display_name", "id", "logo"],
+    },
+    {
+      model: Tenant,
+      as: "msp",
+      required: false,
+      where: {
+        is_deleted: false,
+      },
+      attributes: ["name", "display_name", "id", "logo"],
+    },
+  ],
+  attributes: [
+    "id",
+    "name",
+    "display_name",
+    "description",
+    "type",
+    "start_date",
+    "is_enabled",
+    "unique_id",
+  ],
+});
 
-    if (programs) {
-      const [customFieldsResult] = await sequelize.query(
-        getCustomsField(programs.id, 'program_custom_field', 'program_id', 'custom_field_id'),
-        {
-          replacements: { id: programs.id },
-          type: QueryTypes.SELECT,
-        }
-      ) as any;
-
-      const customFields = customFieldsResult?.custom_fields
-        .map((field: any) => ({
-          ...field,
-          value: parseValue(field.value),
-        }))
-
-      reply.status(200).send({
-        status_code: 200,
-        message: "Data fetch successfully",
-        data: {
-          ...programs.toJSON(),
-          custom_fields: customFields,
-        },
-        trace_id: traceId,
-      });
-
-    } else {
-      reply.status(200).send({
-        status_code: 200,
-        message: "Programs not found",
-        trace_id: traceId,
-        program: [],
-
-      });
+if (programs) {
+  const [customFieldsResult] = await sequelize.query(
+    getCustomsField(programs.id, 'program_custom_field', 'program_id', 'custom_field_id'),
+    {
+      replacements: { id: programs.id },
+      type: QueryTypes.SELECT,
     }
+  ) as any;
+
+  const customFields = customFieldsResult?.custom_fields || [];
+  reply.status(200).send({
+    status_code: 200,
+    message: "Data fetch successfully",
+    data: {
+      ...programs.toJSON(),
+      custom_fields: customFields,
+    },
+    trace_id: traceId,
+  });
+
+} else {
+  reply.status(200).send({
+    status_code: 200,
+    message: "Programs not found",
+    trace_id: traceId,
+    program: [],
+
+  });
+}
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
@@ -360,7 +354,7 @@ export const updateProgramById = async (request: FastifyRequest<{ Params: { id: 
   const traceId = generateCustomUUID();
 
   try {
-    const user = request?.user
+    const user=request?.user
     const userId = user?.sub;
 
     const program = await Programs.findOne({
@@ -485,7 +479,7 @@ export async function deleteProgramById(request: FastifyRequest, reply: FastifyR
   const { id } = request.params as { id: string };
   const traceId = generateCustomUUID();
   try {
-    const user = request?.user
+    const user=request?.user
     const userId = user?.sub;
     const program = await Programs.findByPk(id);
     if (program) {
@@ -623,7 +617,6 @@ export async function getMspByProgramId(request: FastifyRequest, reply: FastifyR
     });
   }
 }
-
 
 export async function updateMspByProgramId(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
