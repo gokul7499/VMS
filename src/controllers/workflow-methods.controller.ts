@@ -316,7 +316,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
         else if (module === 'submit_candidate_rehire_check') {
             return await handleCandidateRehireCheckModule(workflow_trigger_id, reply, traceId);
         } else if (module === 'sow') {
-            return await handleSowModule(workflow_trigger_id, reply, traceId);
+            return await handleSowModule(workflow_trigger_id, reply, traceId, moduleLower);
         }
         else {
             return await handleOtherModules(workflow_trigger_id , module, reply, traceId);
@@ -385,7 +385,7 @@ function sortWorkflowMethods(responses: any[], sortByPending = false, workflows:
             );
             
             response.is_workflow = !!matchedWorkflow;
-            response.workflow_id = (moduleLower === "assignment" || moduleLower === "job")
+            response.workflow_id = (moduleLower === "assignment" || moduleLower === "job" || moduleLower === "sow")
                 ? null
                 : matchedWorkflow?.dataValues?.id ?? null;
             response.workflow_status = matchedWorkflow?.dataValues?.status ?? null;
@@ -504,7 +504,7 @@ async function handleJobModule(workflowTriggerId: string | undefined, reply: Fas
 
 
 // Handle sow module
-async function handleSowModule(workflowTriggerId: string | undefined, reply: FastifyReply, traceId: string) {
+async function handleSowModule(workflowTriggerId: string | undefined, reply: FastifyReply, traceId: string, moduleLower: any) {
     const moduleId = await findModuleBySlug("sow");
     console.log('Module id is nooww', moduleId)
     const eventId1 = await findEvent(moduleId, "create_sow");
@@ -559,7 +559,7 @@ async function handleSowModule(workflowTriggerId: string | undefined, reply: Fas
         });
     }
 
-    const sortedResponse = sortWorkflowMethods(responses, false, workflows);
+    const sortedResponse = sortWorkflowMethods(responses, false, workflows, moduleLower);
 
     return reply.status(200).send({
         status_code: 200,
