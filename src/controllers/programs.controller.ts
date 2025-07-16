@@ -526,9 +526,9 @@ export async function getMspByProgramId(request: FastifyRequest, reply: FastifyR
 
   try {
     const { program_id } = request.params as { program_id: string };
-    const { is_enabled, is_not_msp_associated,type,display_name } = request.query as { is_enabled?: string; is_not_msp_associated?: string ,type?:string,display_name?:string};
+    const { is_enabled, is_msp_not_associated,type,display_name } = request.query as { is_enabled?: string; is_msp_not_associated?: string ,type?:string,display_name?:string};
 
-    if (is_not_msp_associated === 'true') {
+    if (is_msp_not_associated === 'true') {
       const associatedMspRecords = await programMspAssociationModel.findAll({
         where: { program_id },
         attributes: ['msp_id'],
