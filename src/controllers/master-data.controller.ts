@@ -425,7 +425,7 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
             id?: string;
             name?: string;
             is_enabled?: boolean;
-            updated_on?: string;
+            updated_on?: any;
             manager_ids?: string;
             code?: string;
             first_name?: string;
@@ -439,13 +439,18 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
         const limit = body.limit ?? 10;
         const offset = (page - 1) * limit;
 
-        let updated_on_start = null;
-        let updated_on_end = null;
-        if (body.updated_on) {
-            const modifiedOnRange = body.updated_on.split(',');
-            if (modifiedOnRange.length === 2) {
-                updated_on_start = modifiedOnRange[0];
-                updated_on_end = modifiedOnRange[1];
+        const hasUpdatedOnFilter = Array.isArray(body.updated_on) && body.updated_on.length > 0;
+        let updatedOnStart: number | undefined = undefined;
+        let updatedOnEnd: number | undefined = undefined;
+
+        if (hasUpdatedOnFilter) {
+            const startDate = new Date(body.updated_on[0]);
+            updatedOnStart = startDate.setHours(0, 0, 0, 0);
+
+            if (body.updated_on.length === 1 || body.updated_on[1] === 0) {
+                updatedOnEnd = new Date(body.updated_on[0]).setHours(23, 59, 59, 999);
+            } else {
+                updatedOnEnd = new Date(body.updated_on[1]).setHours(23, 59, 59, 999);
             }
         }
 
@@ -455,8 +460,8 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
             id: body.id ?? null,
             name: body.name ? `%${body.name}%` : null,
             is_enabled: body.is_enabled ?? null,
-            updated_on_start,
-            updated_on_end,
+            updated_on_start: updatedOnStart,
+            updated_on_end: updatedOnEnd,
             manager_ids: body.manager_ids ?? null,
             code: body.code ? `%${body.code}%` : null,
             first_name: body.first_name ? `%${body.first_name}%` : null,
@@ -532,7 +537,7 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
             data: foundationalDataArray,
             trace_id: traceId,
         });
-    }      catch (error: any) {
+    } catch (error: any) {
         const safeError = error instanceof Error ? error.message : JSON.stringify(error);
         reply.status(500).send({
             status_code: 500,
