@@ -226,6 +226,11 @@ export async function getJobTemplateById(request: FastifyRequest, reply: Fastify
         type: QueryTypes.SELECT,
       }
     ) as any;
+    const customFields = customFieldsResult?.custom_fields
+      .map((field: any) => ({
+        ...field,
+        value: parseValue(field.value),
+      }))
 
     const [masterDataResult] = await sequelize.query(
       getMasterData('job_template_master_data', 'job_temp_id', 'foundation_data_type_id', 'foundation_data_id', true),
@@ -240,7 +245,7 @@ export async function getJobTemplateById(request: FastifyRequest, reply: Fastify
       message: "Job template fetched successfully",
       job_template: {
         ...transformedJobTemplate,
-        job_template_custom_fields: customFieldsResult.custom_fields,
+        job_template_custom_fields:customFields,
         job_master_data: masterDataResult.master_data
       },
       trace_id: traceId,

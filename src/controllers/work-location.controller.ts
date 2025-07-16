@@ -12,6 +12,7 @@ import { sequelize } from "../config/instance";
 import CountryModel from "../models/countries.model";
 import WorkLocationCustomFieldModel from "../models/work-location-custom-field";
 import { getCustomsField } from "../utility/get-custom-field";  
+import { parseValue } from "../utility/parse-value";
 
 export async function createWorkLocation(
   request: FastifyRequest,
@@ -312,8 +313,12 @@ export async function getWorkLocationById(request: FastifyRequest, reply: Fastif
         type: QueryTypes.SELECT,
       }
     ) as any;
-
-    const customFields = customFieldsResult?.custom_fields ?? [];
+    const customFields = customFieldsResult?.custom_fields
+      .map((field: any) => ({
+        ...field,
+        value: parseValue(field.value),
+      }))
+    
     const workLocationCurrencies = await WorkLocationCurrency.findAll({
       where: { work_location_id: id },
       attributes: ['name', 'is_default', 'code'],
