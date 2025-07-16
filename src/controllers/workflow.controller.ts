@@ -437,7 +437,7 @@ export async function getAllWorkflows(
 
 async function getHierarchyIds(user: any, program_id: string): Promise<string[]> {
     const userDetails = await User.findOne({
-        where: { id: user.sub },
+        where: { program_id, user_id: user.sub },
         attributes: ['user_id', 'user_type', 'tenant_id', 'is_all_hierarchy_associate', 'associate_hierarchy_ids']
     });
 
