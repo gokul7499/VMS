@@ -540,6 +540,7 @@ export async function getMspByProgramId(request: FastifyRequest, reply: FastifyR
         id: {
           [Op.notIn]: associatedMspIds.length ? associatedMspIds : [null],
         },
+        type:"msp"?.toLowerCase()
       };
 
       if (type) {
