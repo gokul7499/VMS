@@ -18,6 +18,7 @@ import ProgramCustomField from "../models/program_custom_field_model";
 import { clonePredefinedPicklistsForProgram } from "./picklist.controller";
 import programMspAssociationModel from "../models/program-msp-association.model";
 import { getCustomsField } from "../utility/get-custom-field";
+import { parseValue } from "../utility/parse-value";
 type MSP = {
   id: string;
   is_enabled: boolean;
@@ -317,14 +318,18 @@ if (programs) {
       type: QueryTypes.SELECT,
     }
   ) as any;
+  const customFields = customFieldsResult?.custom_fields
+      .map((field: any) => ({
+        ...field,
+        value: parseValue(field.value),
+      }))
 
-  const customFields = customFieldsResult?.custom_fields || [];
   reply.status(200).send({
     status_code: 200,
     message: "Data fetch successfully",
     data: {
       ...programs.toJSON(),
-      custom_fields: customFields,
+      custom_fields: customFields ||[],
     },
     trace_id: traceId,
   });
