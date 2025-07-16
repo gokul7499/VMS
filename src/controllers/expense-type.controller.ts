@@ -339,21 +339,42 @@ export async function getAllExpenseType(
         }
     }
     if (updated_on) {
-    const [startDateStr, endDateStr] = updated_on.split(",").map(v => v.trim());
-    if (startDateStr && endDateStr) {
-      whereClause.updated_on = {
-        [Op.between]: [startDateStr, endDateStr]
-      };
-    } else if (startDateStr) {
-      whereClause.updated_on = {
-        [Op.gte]: startDateStr
-      };
-    } else if (endDateStr) {
-      whereClause.updated_on = {
-        [Op.lte]: endDateStr
-      };
+        const [startDateStr, endDateStr] = updated_on.split(",").map(v => v.trim());
+
+        let startMs: number | undefined;
+        let endMs: number | undefined;
+
+        if (startDateStr) {
+            const startDate = new Date(Number(startDateStr));
+            startDate.setHours(0, 0, 0, 0);
+            startMs = startDate.getTime();
+        }
+
+        if (endDateStr) {
+            const endDate = new Date(Number(endDateStr));
+            endDate.setHours(23, 59, 59, 999);
+            endMs = endDate.getTime();
+        } else if (startMs) {
+            const endDate = new Date(Number(startDateStr));
+            endDate.setHours(23, 59, 59, 999);
+            endMs = endDate.getTime();
+        }
+
+        if (startMs && endMs) {
+            whereClause.updated_on = {
+                [Op.between]: [startMs, endMs]
+            };
+        } else if (startMs) {
+            whereClause.updated_on = {
+                [Op.gte]: startMs
+            };
+        } else if (endMs) {
+            whereClause.updated_on = {
+                [Op.lte]: endMs
+            };
+        }
     }
-  }
+
 
     const pageNumber = parseInt(page as unknown as string) || 1;
     const pageSize = parseInt(limit as unknown as string) || 10;
