@@ -318,7 +318,6 @@ if (programs) {
       type: QueryTypes.SELECT,
     }
   ) as any;
-
   const customFields = customFieldsResult?.custom_fields
       .map((field: any) => ({
         ...field,
@@ -330,7 +329,7 @@ if (programs) {
     message: "Data fetch successfully",
     data: {
       ...programs.toJSON(),
-      custom_fields: customFields,
+      custom_fields: customFields ||[],
     },
     trace_id: traceId,
   });
@@ -527,29 +526,72 @@ export async function getMspByProgramId(request: FastifyRequest, reply: FastifyR
 
   try {
     const { program_id } = request.params as { program_id: string };
-    const { is_enabled } = request.query as { is_enabled?: string };
+    const { is_enabled, is_msp_not_associated,type,display_name } = request.query as { is_enabled?: string; is_msp_not_associated?: string ,type?:string,display_name?:string};
 
-    const whereCondition: any = {
-      program_id,
+    if (is_msp_not_associated === 'true') {
+      const associatedMspRecords = await programMspAssociationModel.findAll({
+        where: { program_id },
+        attributes: ['msp_id'],
+      });
+
+      const associatedMspIds = associatedMspRecords.map((record: any) => record.msp_id);
+
+      const tenantWhere: any = {
+        id: {
+          [Op.notIn]: associatedMspIds.length ? associatedMspIds : [null],
+        },
+        type:"msp"?.toLowerCase()
+      };
+
+      if (type) {
+        tenantWhere.type = type;
+      }
+      if (display_name) {
+        tenantWhere.display_name = {
+          [Op.like]: `%${display_name.trim()}%`,
+        };
+      }
+
+      const tenantData = await Tenant.findAll({
+        where: tenantWhere,
+        attributes: ['id', 'name', 'display_name'],
+      });
+
+      reply.status(200).send({
+        status_code: 200,
+        message: tenantData.length
+          ? 'Unassociated MSP(s) retrieved successfully'
+          : 'No unassociated MSP(s) found for the given program ID',
+        total_records: tenantData.length,
+        msps: tenantData,
+        trace_id: traceId,
+      });
+
+      return;
     }
+    const whereCondition: any = { program_id };
+
     if (is_enabled !== undefined) {
       whereCondition.is_enabled = is_enabled === 'true';
     }
 
-    const { rows: mspAssociations, count: totalRecords } = await programMspAssociationModel.findAndCountAll({
-      where: whereCondition,
-      attributes: {
-        exclude: ['created_by', 'updated_by'],
-      },
-      include: [
-        {
-          model: Tenant,
-          as: 'msp',
-          attributes: ['id', 'name', 'display_name'],
-          required: false,
-        }
-      ]
-    });
+    if (type) {
+      whereCondition.type = type;
+    }
+
+    const { rows: mspAssociations, count: totalRecords } =
+      await programMspAssociationModel.findAndCountAll({
+        where: whereCondition,
+        attributes: { exclude: ['created_by', 'updated_by'] },
+        include: [
+          {
+            model: Tenant,
+            as: 'msp',
+            attributes: ['id', 'name', 'display_name'],
+            required: false,
+          },
+        ],
+      });
 
     const responseData = mspAssociations.map((item: any) => {
       const msp = item.toJSON();
@@ -576,6 +618,7 @@ export async function getMspByProgramId(request: FastifyRequest, reply: FastifyR
       msp_associations: responseData,
       trace_id: traceId,
     });
+
   } catch (error: any) {
     reply.status(500).send({
       status_code: 500,

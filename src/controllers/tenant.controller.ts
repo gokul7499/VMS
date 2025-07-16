@@ -318,7 +318,7 @@ export async function searchTenantsWithProgramCount(request: FastifyRequest, rep
     const responseFields = ["id", "name", "display_name", "contacts", "created_on", "is_enabled", "type", "logo", "vendor_code"];
     const traceId = generateCustomUUID();
     try {
-        const body = request.body as Record<string, string>;
+        const body = request.body as Record<string, any>;
         const page = body.page ? parseInt(body.page) : null;
         const limit = body.limit ? parseInt(body.limit) : null;
         const offset = page && limit ? (page - 1) * limit : undefined;
@@ -338,7 +338,7 @@ export async function searchTenantsWithProgramCount(request: FastifyRequest, rep
         searchFields.forEach(field => {
             if (body[field]) {
                 if (field === "is_enabled") {
-                    searchConditions[field] = body[field] === "true" ? 1 : 0;
+                    searchConditions[field] = body[field] === true ? 1 : 0;
                 } else {
                     searchConditions[field] = {
                         [Op.like]: `%${body[field].trim()}%`
