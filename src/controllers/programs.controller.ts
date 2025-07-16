@@ -526,7 +526,7 @@ export async function getMspByProgramId(request: FastifyRequest, reply: FastifyR
 
   try {
     const { program_id } = request.params as { program_id: string };
-    const { is_enabled, is_not_msp_associated,type } = request.query as { is_enabled?: string; is_not_msp_associated?: string ,type?:string};
+    const { is_enabled, is_not_msp_associated,type,display_name } = request.query as { is_enabled?: string; is_not_msp_associated?: string ,type?:string,display_name?:string};
 
     if (is_not_msp_associated === 'true') {
       const associatedMspRecords = await programMspAssociationModel.findAll({
@@ -545,6 +545,11 @@ export async function getMspByProgramId(request: FastifyRequest, reply: FastifyR
       if (type) {
         tenantWhere.type = type;
       }
+      if (display_name) {
+        tenantWhere.display_name = {
+          [Op.like]: `%${display_name.trim()}%`,
+        };
+      }
 
       const tenantData = await Tenant.findAll({
         where: tenantWhere,
@@ -557,7 +562,7 @@ export async function getMspByProgramId(request: FastifyRequest, reply: FastifyR
           ? 'Unassociated MSP(s) retrieved successfully'
           : 'No unassociated MSP(s) found for the given program ID',
         total_records: tenantData.length,
-        unassociated_msps: tenantData,
+        msps: tenantData,
         trace_id: traceId,
       });
 
