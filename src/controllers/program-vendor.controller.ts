@@ -175,17 +175,127 @@ export async function getProgramVendors(
             );
         }
 
+        const countryMap: { [key: string]: any } = countries.reduce((acc: { [key: string]: any }, country: any) => {
+            acc[country.id] = country;
+            return acc;
+        }, {});
+
+        const processedVendors = await Promise.all(
+            program_vendors.map(async (vendor) => {
+                const vendorDocumentGroups = await VendorDocumentGroupModel.findAll({
+                    where: { id: vendor.com_doc_group },
+                });
+
+                let compliance_status = {
+                    status: 'Non-Compliant',
+                    is_audited: false,
+                    is_compliant: false,
+                };
+
+                if (vendorDocumentGroups.length > 0) {
+                    const required_documentsIds = vendorDocumentGroups[0].required_documents;
+
+                    const required_documents = await VendorComplianceDocumentModel.findAll({
+                        where: {
+                            id: required_documentsIds,
+                        },
+                    });
+
+                    const allDocumentsCompliant = await Promise.all(required_documents.map(async (doc) => {
+                        const mapping = await VendorComplianceReqDocMappingModel.findOne({
+                            where: { required_document_id: doc.id, vendor_id: vendor.id }
+                        });
+
+                        return mapping && mapping.status.toLowerCase() === 'compliant';
+                    }));
+                    if (allDocumentsCompliant.every(status => status)) {
+                        compliance_status = {
+                            status: 'Compliant',
+                            is_audited: true,
+                            is_compliant: true,
+                        };
+                    }
+                }
+
+                vendor.compliance_status = compliance_status;
+
+                vendor.addresses = vendor.addresses?.map((address: { country: string | number; }) => {
+                    const country = countryMap[address.country];
+                    if (country) {
+                        return {
+                            ...address,
+                            country: {
+                                id: country.id,
+                                name: country.name,
+                                isd_code: country.isd_code,
+                                iso_code_2: country.iso_code_2,
+                                iso_code_3: country.iso_code_3,
+                                min_phone_length: country.min_phone_length,
+                                max_phone_length: country.max_phone_length,
+                            },
+                        };
+                    }
+                    return address;
+                });
+
+                vendor.diversity_details = vendor.diversity_details?.map((diversity: { country: string | number; }) => {
+                    const country = countryMap[diversity.country];
+                    if (country) {
+                        return {
+                            ...diversity,
+                            country: {
+                                id: country.id,
+                                name: country.name,
+                            },
+                        };
+                    }
+                    return diversity;
+                });
+
+                const vendorDetails = await sequelize.query(getProgramVendorDetails, {
+                    replacements: { program_id: program_id, id: vendor.id || null },
+                    type: QueryTypes.SELECT,
+                }) as any;
+                 const [customFieldsResult] = (await sequelize.query(
+                   getCustomsField(
+                    vendor.id,
+                    "vendor_custom_field",
+                     "vendor_id",
+                      "custom_field_id"
+                    ),
+                {
+                 replacements: { id: vendor.id },
+                 type: QueryTypes.SELECT,
+                }
+                )) as any;
+                const customFields = customFieldsResult?.custom_fields.map(
+               (field: any) => ({
+               ...field,
+              value: parseValue(field.value),
+                })
+               );
+
+                const transformedVendor = {
+                    ...vendor.toJSON(),
+                    hierarchies: vendorDetails.length > 0 ? vendorDetails[0].hierarchies : [],
+                    work_locations: vendorDetails.length > 0 ? vendorDetails[0].work_locations : [],
+                    associate_labour_category: vendorDetails.length > 0 ? vendorDetails[0].labour_category : [],
+                    custom_fields: customFields||[]
+                };
+
+                return transformedVendor;
+            })
+        );
+
         reply.status(200).send({
             status_code: 200,
             message: 'ProgramVendors fetched successfully.',
             trace_id: traceId,
             items_per_page: pageStr && limitStr ? parseInt(limitStr, 10) : null,
             total_records: totalItems,
-            program_vendors: program_vendors,
+            program_vendors: processedVendors,
         });
     } catch (error) {
-        console.log(error);
-
         reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while fetching ProgramVendors.',
@@ -664,25 +774,25 @@ export const getProgramVendorById = async (request: FastifyRequest, reply: Fasti
 
         const programVendor: ProgramVendor = vendorData[0];
         const [customFieldsResult] = await sequelize.query(
-            getCustomsField(programVendor.id, 'vendor_custom_field', 'vendor_id', 'custom_field_id'),
+            getCustomsField(programVendor.id, 'vendor_custom_field','vendor_id','custom_field_id'),
             {
                 replacements: { id: programVendor.id },
                 type: QueryTypes.SELECT
             }
-        ) as any;
+        )as any;
         const customFields = customFieldsResult?.custom_fields
-            .map((field: any) => ({
-                ...field,
-                value: parseValue(field.value),
-            }))
-
+      .map((field: any) => ({
+        ...field,
+        value: parseValue(field.value),
+      }))
+ 
         return reply.status(200).send({
             status_code: 200,
             message: 'Program vendor data fetched successfully.',
             trace_id: traceId,
             program_vendor: {
                 ...programVendor,
-                custom_field: customFields || []
+                custom_field:customFields ||[]
 
             },
         });
