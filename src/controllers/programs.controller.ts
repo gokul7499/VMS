@@ -28,7 +28,7 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
   const { msps = [], ...programData } = request.body as CreateProgramData & { msps?: string[] };
   const traceId = generateCustomUUID();
 
-  const user=request?.user
+  const user = request?.user
   const userId = user?.sub;
 
 
@@ -274,76 +274,76 @@ export const getProgramById = async (request: FastifyRequest, reply: FastifyRepl
   const { id } = request.params as { id: string };
   const traceId = generateCustomUUID();
   try {
-const programs = await Programs.findOne({
-  where: {
-    id: id,
-    is_deleted: false,
-  },
-  include: [
-    {
-      model: Tenant,
-      as: "client",
+    const programs = await Programs.findOne({
       where: {
+        id: id,
         is_deleted: false,
       },
-      attributes: ["name", "display_name", "id", "logo"],
-    },
-    {
-      model: Tenant,
-      as: "msp",
-      required: false,
-      where: {
-        is_deleted: false,
-      },
-      attributes: ["name", "display_name", "id", "logo"],
-    },
-  ],
-  attributes: [
-    "id",
-    "name",
-    "display_name",
-    "description",
-    "type",
-    "start_date",
-    "is_enabled",
-    "unique_id",
-  ],
-});
+      include: [
+        {
+          model: Tenant,
+          as: "client",
+          where: {
+            is_deleted: false,
+          },
+          attributes: ["name", "display_name", "id", "logo"],
+        },
+        {
+          model: Tenant,
+          as: "msp",
+          required: false,
+          where: {
+            is_deleted: false,
+          },
+          attributes: ["name", "display_name", "id", "logo"],
+        },
+      ],
+      attributes: [
+        "id",
+        "name",
+        "display_name",
+        "description",
+        "type",
+        "start_date",
+        "is_enabled",
+        "unique_id",
+      ],
+    });
 
-if (programs) {
-  const [customFieldsResult] = await sequelize.query(
-    getCustomsField(programs.id, 'program_custom_field', 'program_id', 'custom_field_id'),
-    {
-      replacements: { id: programs.id },
-      type: QueryTypes.SELECT,
+    if (programs) {
+      const [customFieldsResult] = await sequelize.query(
+        getCustomsField(programs.id, 'program_custom_field', 'program_id', 'custom_field_id'),
+        {
+          replacements: { id: programs.id },
+          type: QueryTypes.SELECT,
+        }
+      ) as any;
+
+      const customFields = customFieldsResult?.custom_fields
+        .map((field: any) => ({
+          ...field,
+          value: parseValue(field.value),
+        }))
+
+      reply.status(200).send({
+        status_code: 200,
+        message: "Data fetch successfully",
+        data: {
+          ...programs.toJSON(),
+          custom_fields: customFields,
+        },
+        trace_id: traceId,
+      });
+
+    } else {
+      reply.status(200).send({
+        status_code: 200,
+        message: "Programs not found",
+        trace_id: traceId,
+        program: [],
+
+      });
     }
-  ) as any;
-
-  const customFields = customFieldsResult?.custom_fields
-      .map((field: any) => ({
-        ...field,
-        value: parseValue(field.value),
-      }))
-
-  reply.status(200).send({
-    status_code: 200,
-    message: "Data fetch successfully",
-    data: {
-      ...programs.toJSON(),
-      custom_fields: customFields,
-    },
-    trace_id: traceId,
-  });
-
-} else {
-  reply.status(200).send({
-    status_code: 200,
-    message: "Programs not found",
-    trace_id: traceId,
-    program: [],
-
-  });
-}
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
@@ -360,7 +360,7 @@ export const updateProgramById = async (request: FastifyRequest<{ Params: { id: 
   const traceId = generateCustomUUID();
 
   try {
-    const user=request?.user
+    const user = request?.user
     const userId = user?.sub;
 
     const program = await Programs.findOne({
@@ -485,7 +485,7 @@ export async function deleteProgramById(request: FastifyRequest, reply: FastifyR
   const { id } = request.params as { id: string };
   const traceId = generateCustomUUID();
   try {
-    const user=request?.user
+    const user = request?.user
     const userId = user?.sub;
     const program = await Programs.findByPk(id);
     if (program) {
@@ -527,29 +527,66 @@ export async function getMspByProgramId(request: FastifyRequest, reply: FastifyR
 
   try {
     const { program_id } = request.params as { program_id: string };
-    const { is_enabled } = request.query as { is_enabled?: string };
+    const { is_enabled, is_not_msp_associated,type } = request.query as { is_enabled?: string; is_not_msp_associated?: string ,type?:string};
 
-    const whereCondition: any = {
-      program_id,
+    if (is_not_msp_associated === 'true') {
+      const associatedMspRecords = await programMspAssociationModel.findAll({
+        where: { program_id },
+        attributes: ['msp_id'],
+      });
+
+      const associatedMspIds = associatedMspRecords.map((record: any) => record.msp_id);
+
+      const tenantWhere: any = {
+        id: {
+          [Op.notIn]: associatedMspIds.length ? associatedMspIds : [null],
+        },
+      };
+
+      if (type) {
+        tenantWhere.type = type;
+      }
+
+      const tenantData = await Tenant.findAll({
+        where: tenantWhere,
+        attributes: ['id', 'name', 'display_name'],
+      });
+
+      reply.status(200).send({
+        status_code: 200,
+        message: tenantData.length
+          ? 'Unassociated MSP(s) retrieved successfully'
+          : 'No unassociated MSP(s) found for the given program ID',
+        total_records: tenantData.length,
+        unassociated_msps: tenantData,
+        trace_id: traceId,
+      });
+
+      return;
     }
+    const whereCondition: any = { program_id };
+
     if (is_enabled !== undefined) {
       whereCondition.is_enabled = is_enabled === 'true';
     }
 
-    const { rows: mspAssociations, count: totalRecords } = await programMspAssociationModel.findAndCountAll({
-      where: whereCondition,
-      attributes: {
-        exclude: ['created_by', 'updated_by'],
-      },
-      include: [
-        {
-          model: Tenant,
-          as: 'msp',
-          attributes: ['id', 'name', 'display_name'],
-          required: false,
-        }
-      ]
-    });
+    if (type) {
+      whereCondition.type = type;
+    }
+
+    const { rows: mspAssociations, count: totalRecords } =
+      await programMspAssociationModel.findAndCountAll({
+        where: whereCondition,
+        attributes: { exclude: ['created_by', 'updated_by'] },
+        include: [
+          {
+            model: Tenant,
+            as: 'msp',
+            attributes: ['id', 'name', 'display_name'],
+            required: false,
+          },
+        ],
+      });
 
     const responseData = mspAssociations.map((item: any) => {
       const msp = item.toJSON();
@@ -576,6 +613,7 @@ export async function getMspByProgramId(request: FastifyRequest, reply: FastifyR
       msp_associations: responseData,
       trace_id: traceId,
     });
+
   } catch (error: any) {
     reply.status(500).send({
       status_code: 500,
@@ -585,6 +623,7 @@ export async function getMspByProgramId(request: FastifyRequest, reply: FastifyR
     });
   }
 }
+
 
 export async function updateMspByProgramId(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
