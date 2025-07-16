@@ -20,7 +20,7 @@ async function tenantRoutes(fastify: FastifyInstance) {
   fastify.post("/tenant/tenant-user",createTenantAndUser);
   fastify.put("/tenant/:id", updateTenant);
   fastify.delete("/tenant/:id", deleteTenant);
-  fastify.get("/tenant/search-tenant", searchTenantsWithProgramCount);
+  fastify.post("/tenant/search-tenant", searchTenantsWithProgramCount);
   fastify.post("/tenant/advanced-filter", advancedSearchTenants);
   fastify.get("/tenant/:client_id/password-policy", getPasswordPolicy);
 }
