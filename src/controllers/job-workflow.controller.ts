@@ -1761,16 +1761,19 @@ export const rejectLevel = async (
         
         await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode , null)
         await updateRejectStatusInAllWorkflowModule(request, reply, program_id, id, workflow, updates )
+        const newStatus :any= (job_id && program_id && token)
+            ? await getUpdatedJobStatus(job_id, program_id, token)
+            : null;          
          if (job_id) {
                try {
                  await createJobHistory(
                    program_id,
                    job_id,
-                   'SOURCING',
+                   newStatus,
                    'Job Status Update',
                    token,
                    userId || '',      
-                   { status: 'SOURCING' }
+                   { status: newStatus }
                  );
                } catch (error) {
                  console.error('Failed to create job history:', error);
