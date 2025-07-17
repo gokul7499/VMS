@@ -11,11 +11,11 @@ import {
 import { createEventSchema, paramsSchema, querySchema } from '../interfaces/event.interface';
 
 async function EventRoutes(fastify: FastifyInstance) {
-    // fastify.post('/supporting-text-event', {
-    //     schema: {
-    //         body: createEventSchema,
-    //     }
-    // }, createEvent);
+    fastify.post('/supporting-text-event', {
+        schema: {
+            body: createEventSchema,
+        }
+    }, createEvent);
 
     fastify.get('/module/:module_id/supporting-text-event', {
         schema: {
