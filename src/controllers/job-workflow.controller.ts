@@ -3002,10 +3002,10 @@ async function processWorkflowRow(row: any, workflows: { [key: string]: Workflow
                             recipientTypeName = rtInfo.name || "";
                         }
                     }
-
+                    
                     let replaced_user_data = null;
-                    if (replaced_by) {
-                        const replacedUserResult = await fetchUserData(replaced_by, program_id);
+                    if (rt?.replaced_by) {
+                        const replacedUserResult = await fetchUserData(rt?.replaced_by, program_id);
                         if (replacedUserResult?.length) {
                             replaced_user_data = mapReplacedUserData(replacedUserResult[0],recipientTypeName, recipient_details, behaviour);
                         }
