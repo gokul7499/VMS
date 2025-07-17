@@ -949,7 +949,7 @@ export async function getActiveUser(request: FastifyRequest, reply: FastifyReply
   const userTokenData = request?.user;
 
   const { program_id } = request.params as { program_id: string };
-  const { hierarchy_id } = request.query as { hierarchy_id?: string };
+  const { hierarchy_id ,is_msp } = request.query as { hierarchy_id?: string ,is_msp?:string };
   const traceId = generateCustomUUID();
   const userId = userTokenData?.sub;
   const userType = userTokenData?.userType;
@@ -1011,14 +1011,16 @@ export async function getActiveUser(request: FastifyRequest, reply: FastifyReply
       is_super_user: isSuperUser,
       is_all_hierarchy_associate_param: isAllHierarchyAssociateParam,
       allowed_hierarchy_ids: allowedHierarchyIds ? JSON.stringify(allowedHierarchyIds) : null,
-      current_user_hierarchy_ids: currentUserHierarchyIds.length > 0 ? JSON.stringify(currentUserHierarchyIds) : null
+      current_user_hierarchy_ids: currentUserHierarchyIds.length > 0 ? JSON.stringify(currentUserHierarchyIds) : null,
+      is_msp: is_msp === 'true' ? true : false,
     };
 
     console.log("Query parameters:", {
       isSuperUser,
       isAllHierarchyAssociateParam,
       allowedHierarchyIds,
-      currentUserHierarchyIds
+      currentUserHierarchyIds,
+      is_msp
     });
 
     const users = await sequelize.query(getActiveUsers, {
