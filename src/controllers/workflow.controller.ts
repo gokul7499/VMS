@@ -956,9 +956,14 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
 
 export async function getChildWorkflows(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found', trace_id: traceId });
+    }
+    const token = authHeader.split(' ')[1];
+    const user: any = await decodeToken(token);
     try {
         const params = request.params as {
-
             program_id: string;
             workflow_id: string;
             flow_type: string;
@@ -979,10 +984,26 @@ export async function getChildWorkflows(request: FastifyRequest, reply: FastifyR
             filters[`hierarchy_id_${index + 1}`] = id;
         });
 
-        const parentWorkflow = await sequelize.query(getparentWorkflowsQuery(hierarchyIds.length), {
+        const Workflow = await sequelize.query(getparentWorkflowsQuery(hierarchyIds.length), {
             replacements: filters,
             type: QueryTypes.SELECT
         });
+
+        let parentWorkflow: any[] = [];
+        parentWorkflow = await Promise.all(
+            (Workflow || []).map(async (workflow: any) => {
+                if (workflow?.is_associated_to_all_hierarchy === 1) {
+                    const hierarchyIdsForUser = await getHierarchyIds(user, params.program_id);
+                    const hierarchy = await hierarchies.findAll({
+                        where: { id: { [Op.in]: hierarchyIdsForUser } },
+                        attributes: ['id', 'name']
+                    });
+                    return { ...workflow, hierarchies: hierarchy };
+                } else {
+                    return { ...workflow };
+                }
+            })
+        );
 
         const childWorkflows = await sequelize.query(getChildWorkflowsQuery(hierarchyIds.length), {
             replacements: filters,

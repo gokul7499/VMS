@@ -7,7 +7,8 @@ import { sequelize } from '../config/instance';
 import Currencies from '../models/currencies.model';
 const config_db = databaseConfig.config.database;
 const sourcing_url = databaseConfig.config.sourcing_url;
-const teai_url= databaseConfig.config.teai_url
+const teai_url = databaseConfig.config.teai_url
+const db_sourcing = databaseConfig.config.db_sourcing;
 
 export async function getUsersWithHierarchy(
     sequelize: any,
@@ -224,7 +225,7 @@ interface WorkflowDetails {
     candidate_id?: string;
     events?: string;
     workflow_trigger_id?: string;
-    code?:string
+    code?: string
 }
 
 export async function getWorkflowDetails(
@@ -263,7 +264,7 @@ export async function getWorkflowDetails(
 }
 
 export async function isVendorRequired(eventCode: string): Promise<boolean> {
-    const requiredEvents = new Set([        
+    const requiredEvents = new Set([
         "CANDIDATE_SHORTLIST_REJECTED",
         "REHIRE_REVIEW_REJECT",
         "REHIRE_APPROVAL_REJECT",
@@ -291,7 +292,7 @@ export async function getProgramVendorsEmail(programId: string): Promise<EmailRe
                 )
             ) AS ct
             WHERE program_id = :program_id
-            AND JSON_VALID(contact);`,  
+            AND JSON_VALID(contact);`,
             {
                 replacements: { program_id: programId },
                 type: QueryTypes.SELECT
@@ -317,7 +318,7 @@ export const getJobDetails = async (id: string, program_id: string, token: strin
             console.warn("Job details not found.");
             return { status: 404, message: "Job details not found", data: null };
         }
-        console.log('Job details fetched successfully'); 
+        console.log('Job details fetched successfully');
         return { status: 200, message: "Success", data: response.data };
     } catch (error: any) {
         return handleErrorProperly(error, "Job details");
@@ -383,15 +384,40 @@ export const handleErrorProperly = (error: any, entity: string) => {
 };
 
 
-				 
-export async function formatCurrencyAmount(currencyCode: string, amount: number): Promise<string> {
-  const currency = await Currencies.findOne({
-    where: { code: currencyCode },
-    attributes: ['symbol'],
-    raw: true
-  });
 
-  const symbol = currency?.symbol || '';
-  const formattedAmount = Number(amount).toLocaleString("en-US");
-  return `${symbol} ${formattedAmount}`;
-  }
+export async function formatCurrencyAmount(currencyCode: string, amount: number): Promise<string> {
+    const currency = await Currencies.findOne({
+        where: { code: currencyCode },
+        attributes: ['symbol'],
+        raw: true
+    });
+
+    const symbol = currency?.symbol || '';
+    const formattedAmount = Number(amount).toLocaleString("en-US");
+    return `${symbol} ${formattedAmount}`;
+}
+
+
+export const getSubmissionData = async (id: string, program_id: string, token: string) => {
+    const data = `${sourcing_url}/v1/api/program/${program_id}/get-submission-candidate/${id}`;
+    try {
+        const response = await axios.get(data, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+        });
+
+        if (!response.data) {
+            console.warn("Submission details not found.");
+            return { status: 404, message: "Submission details not found", data: null };
+        }
+
+        console.log("Submission details fetched successfully");
+        return { status: 200, message: "Success", data: response.data };
+
+    } catch (error: any) {
+        console.error("Error fetching submission details:", error?.response?.data || error.message);
+        return { status: 500, message: "Error fetching submission details", data: null };
+    }
+};

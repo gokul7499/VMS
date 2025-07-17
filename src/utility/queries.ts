@@ -2991,7 +2991,10 @@ FROM
 WHERE
     user.program_id = :program_id
     AND LOWER(user.status) = 'active'
-    AND user.user_type = 'client'
+    AND (
+    user.user_type = 'client'
+    OR (:is_msp = true AND user.user_type = 'msp')
+    )
     AND (
         ( -- Super user case
             :is_super_user = true
