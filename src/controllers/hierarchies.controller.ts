@@ -1140,6 +1140,26 @@ export async function bulkCreateHierarchies(request: FastifyRequest, reply: Fast
           continue;
         }
 
+        if (hierarchie.rate_model) {
+          const rateModelMap: Record<string, 'bill_rate' | 'markup' | 'pay_rate'> = {
+            'Bill Rate (No Markup)': 'bill_rate',
+            'Bill Rate (Markup)': 'markup',
+            'Pay Rate (Markup)': 'pay_rate'
+          };
+
+          const normalizedRateModel = rateModelMap[hierarchie.rate_model];
+          if (normalizedRateModel) {
+            hierarchie.rate_model = normalizedRateModel;
+          } else {
+            results.failed.push({
+              index: i,
+              code: hierarchyCode,
+              message: `Invalid rate_model: '${hierarchie.rate_model}'`
+            });
+            continue;
+          }
+        }
+
         let managedById = null;
         if (hierarchie.managed_by) {
           const managedByUser = await TenantModel.findOne({
